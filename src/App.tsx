@@ -8,6 +8,8 @@ import { AuthProvider } from "./context/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Portfolio from "./pages/Portfolio";
+import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -27,6 +29,8 @@ const App = () => {
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Dashboard />} />
+              <Route path="/portfolio/create" element={<Portfolio />} />
+              <Route path="/upgrade" element={<Upgrade />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
