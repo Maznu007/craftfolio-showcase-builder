@@ -1,19 +1,26 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { user, userType, signOut } = useAuth();
   const navigate = useNavigate();
 
   // Redirect to login if not authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       navigate('/auth');
+    } else {
+      // Show welcome toast when a user successfully arrives at the dashboard
+      toast({
+        title: "Welcome to your dashboard",
+        description: `Logged in as ${user.email}`,
+      });
     }
   }, [user, navigate]);
 

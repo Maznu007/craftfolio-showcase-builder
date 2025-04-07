@@ -20,7 +20,7 @@ const Auth = () => {
   
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -46,7 +46,7 @@ const Auth = () => {
           title: "Success!",
           description: "Account created successfully. You are now logged in.",
         });
-        navigate('/');
+        navigate('/dashboard');
       } else {
         toast({
           title: "Success!",
@@ -81,7 +81,7 @@ const Auth = () => {
         title: "Logged in successfully",
         description: `Welcome back, ${email}!`,
       });
-      navigate('/');
+      navigate('/dashboard');
     } catch (error: any) {
       toast({
         variant: "destructive",
