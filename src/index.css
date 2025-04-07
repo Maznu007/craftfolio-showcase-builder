@@ -1,3 +1,7 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -96,6 +100,20 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-craftfolio-mint text-foreground font-inter;
+  }
+  
+  .handwritten {
+    @apply font-playfair text-black;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply hover:opacity-70 transition-opacity duration-200;
+  }
+  
+  .portfolio-card {
+    @apply rounded-lg shadow-lg overflow-hidden relative transition-all duration-300 hover:shadow-xl;
   }
 }
