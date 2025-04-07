@@ -1,129 +1,114 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusIcon, FileIcon, LockIcon, PencilIcon, EyeIcon, Trash2Icon } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import PortfolioView from '@/components/portfolio/PortfolioView';
-
-// Portfolio content interface
-interface PortfolioContent {
-  personalInfo: {
-    fullName: string;
-    email: string;
-  };
-  education: string;
-  workExperience: string;
-  awards: string;
-  volunteering: string;
-  languages: {
-    name: string;
-    proficiency: string;
-  }[];
-  computerSkills: {
-    name: string;
-    proficiency: string;
-  }[];
-}
-
-// Portfolio interface
-interface Portfolio {
-  id: string;
-  title: string;
-  description: string | null;
-  template_id: string;
-  content: PortfolioContent;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-}
+import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 
 const Dashboard = () => {
-  const { user, userType, signOut } = useAuth();
+  const { user, userType } = useAuth();
   const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewingPortfolio, setViewingPortfolio] = useState<Portfolio | null>(null);
+  const [deletePortfolioId, setDeletePortfolioId] = useState<string | null>(null);
+  const [viewPortfolio, setViewPortfolio] = useState<Portfolio | null>(null);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!user) {
       navigate('/auth');
-    } else {
-      // Show welcome toast when a user successfully arrives at the dashboard
-      toast({
-        title: "Welcome to your dashboard",
-        description: `Logged in as ${user.email}`,
-      });
-      
-      // Load user's portfolios
-      loadPortfolios();
+      return;
     }
+
+    fetchPortfolios();
   }, [user, navigate]);
 
-  const loadPortfolios = async () => {
+  const fetchPortfolios = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('portfolios')
         .select('*')
-        .order('created_at', { ascending: false });
-        
+        .eq('user_id', user?.id)
+        .order('updated_at', { ascending: false });
+
       if (error) throw error;
-      
-      setPortfolios(data || []);
+
+      // Transform and parse the portfolio content
+      const parsedPortfolios = (data || []).map(p => ({
+        ...p,
+        content: safeParsePortfolioContent(p.content)
+      }));
+
+      setPortfolios(parsedPortfolios);
     } catch (error) {
-      console.error("Error loading portfolios:", error);
+      console.error('Error fetching portfolios:', error);
       toast({
         variant: "destructive",
-        title: "Error loading portfolios",
-        description: error.message || "There was an error loading your portfolios.",
+        title: "Error fetching portfolios",
+        description: "There was a problem loading your portfolios."
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeletePortfolio = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this portfolio?")) return;
-    
+  const handleCreatePortfolio = () => {
+    navigate('/portfolio/create');
+  };
+
+  const handleEditPortfolio = (portfolioId: string) => {
+    // Store the portfolio ID in localStorage for the edit page to pick up
+    localStorage.setItem('editPortfolioId', portfolioId);
+    navigate('/portfolio/create');
+  };
+
+  const handleDeletePortfolio = async () => {
+    if (!deletePortfolioId) return;
+
     try {
       const { error } = await supabase
         .from('portfolios')
         .delete()
-        .eq('id', id);
-        
+        .eq('id', deletePortfolioId);
+
       if (error) throw error;
-      
+
+      setPortfolios(prevPortfolios => 
+        prevPortfolios.filter(p => p.id !== deletePortfolioId)
+      );
+
       toast({
         title: "Portfolio deleted",
-        description: "Your portfolio has been deleted successfully.",
+        description: "Your portfolio has been successfully deleted."
       });
-      
-      // Refresh the portfolios list
-      loadPortfolios();
     } catch (error) {
-      console.error("Error deleting portfolio:", error);
+      console.error('Error deleting portfolio:', error);
       toast({
         variant: "destructive",
         title: "Error deleting portfolio",
-        description: error.message || "There was an error deleting your portfolio.",
+        description: "There was a problem deleting your portfolio."
       });
+    } finally {
+      setDeletePortfolioId(null);
     }
   };
 
-  const handleViewPortfolio = (portfolio: Portfolio) => {
-    setViewingPortfolio(portfolio);
-  };
-
-  const handleEditPortfolio = (portfolio: Portfolio) => {
-    // Store the portfolio ID in localStorage to pre-populate the form
-    localStorage.setItem('editPortfolioId', portfolio.id);
-    navigate('/portfolio/create');
+  const confirmDelete = (portfolioId: string) => {
+    setDeletePortfolioId(portfolioId);
   };
 
   if (!user) {
@@ -135,195 +120,126 @@ const Dashboard = () => {
       <Navbar />
       
       <main className="flex-1 container mx-auto px-4 py-10">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Welcome to Your Dashboard</h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{user.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">User ID</p>
-                  <p className="font-medium break-all">{user.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Account Type</p>
-                  <p className="font-medium capitalize">{userType} User</p>
-                </div>
-                <div className="pt-4">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => navigate('/profile')}
-                  >
-                    Edit Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Portfolio</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  {userType === 'premium' ? 
-                    'You have a premium account with advanced portfolio features.' : 
-                    'Upgrade to premium to unlock all portfolio features.'}
-                </p>
-                <div className="pt-4 flex gap-4">
-                  <Button 
-                    className="flex-1"
-                    onClick={() => navigate('/portfolio/create')}
-                  >
-                    Create Portfolio
-                  </Button>
-                  {userType === 'free' && (
-                    <Button 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => navigate('/upgrade')}
-                    >
-                      Upgrade
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">My Portfolios</h1>
+            <Button onClick={handleCreatePortfolio}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create New Portfolio
+            </Button>
           </div>
           
-          {/* Portfolios Section */}
-          <div className="mt-10">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Your Portfolios</h2>
-              <Button onClick={() => navigate('/portfolio/create')} className="flex items-center">
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Create New
-              </Button>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
+                <span className="sr-only">Loading...</span>
+              </div>
+              <p className="mt-4 text-gray-500">Loading your portfolios...</p>
             </div>
-            
-            {loading ? (
-              <div className="text-center py-8">Loading your portfolios...</div>
-            ) : portfolios.length === 0 ? (
-              <Card className="border-dashed border-2 p-8">
-                <div className="text-center">
-                  <FileIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No portfolios yet</h3>
-                  <p className="text-gray-500 mb-6">Create your first portfolio to showcase your skills and experience.</p>
-                  <Button onClick={() => navigate('/portfolio/create')}>
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Create Portfolio
+          ) : portfolios.length === 0 ? (
+            <Card className="text-center p-12">
+              <CardContent className="pt-10">
+                <div className="flex flex-col items-center">
+                  <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
+                  <h2 className="text-xl font-semibold mb-2">No Portfolios Found</h2>
+                  <p className="text-gray-500 mb-6">
+                    You haven't created any portfolios yet. Create your first portfolio to showcase your skills and projects.
+                  </p>
+                  <Button onClick={handleCreatePortfolio}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Your First Portfolio
                   </Button>
                 </div>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {portfolios.map((portfolio) => (
-                  <Card key={portfolio.id} className="overflow-hidden flex flex-col">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg truncate">{portfolio.title}</CardTitle>
-                      <CardDescription className="truncate">{portfolio.description || 'No description'}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow pb-2">
-                      <div className="text-sm text-gray-500">
-                        <p>Created: {new Date(portfolio.created_at).toLocaleDateString()}</p>
-                        <p className="capitalize">Template: {portfolio.template_id.replace('-', ' ')}</p>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between pt-2">
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewPortfolio(portfolio)}
-                        >
-                          <EyeIcon className="h-4 w-4 mr-1" /> View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditPortfolio(portfolio)}
-                        >
-                          <PencilIcon className="h-4 w-4 mr-1" /> Edit
-                        </Button>
-                      </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {portfolios.map((portfolio) => (
+                <Card key={portfolio.id} className="overflow-hidden flex flex-col">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="truncate">{portfolio.title}</CardTitle>
+                    <CardDescription className="truncate">
+                      {portfolio.description || 'No description provided'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <div className="text-sm text-gray-500 mb-2">
+                      Last updated: {new Date(portfolio.updated_at).toLocaleDateString()}
+                    </div>
+                    <div className="text-sm">
+                      Template: <span className="font-medium capitalize">{portfolio.template_id.replace('-', ' ')}</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-4 border-t">
+                    <div>
                       <Button 
                         variant="ghost" 
-                        size="sm" 
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDeletePortfolio(portfolio.id)}
+                        size="sm"
+                        onClick={() => setViewPortfolio(portfolio)}
                       >
-                        <Trash2Icon className="h-4 w-4" />
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
                       </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Premium Features Section */}
-          {userType !== 'premium' && (
-            <div className="mt-12">
-              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <LockIcon className="h-5 w-5 mr-2 text-yellow-500" />
-                    Premium Features
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 mb-4">
-                    <li className="flex items-start">
-                      <span className="text-yellow-500 font-bold mr-2">✓</span>
-                      Access to premium portfolio templates
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-yellow-500 font-bold mr-2">✓</span>
-                      Create unlimited portfolios
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-yellow-500 font-bold mr-2">✓</span>
-                      Custom domain for your portfolios
-                    </li>
-                    <li className="flex items-start">
-                      <span className="text-yellow-500 font-bold mr-2">✓</span>
-                      Advanced analytics and tracking
-                    </li>
-                  </ul>
-                  <Button 
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-                    onClick={() => navigate('/upgrade')}
-                  >
-                    Upgrade to Premium
-                  </Button>
-                </CardContent>
-              </Card>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditPortfolio(portfolio.id)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => confirmDelete(portfolio.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
           )}
         </div>
       </main>
-      
-      {/* Portfolio Viewer Modal */}
-      {viewingPortfolio && (
-        <PortfolioView 
-          portfolio={viewingPortfolio} 
-          onClose={() => setViewingPortfolio(null)} 
-        />
-      )}
       
       <footer className="bg-white py-6 mt-20">
         <div className="container mx-auto px-4 text-center text-sm text-gray-500">
           <p>© 2025 CRAFTFOLIO. All rights reserved.</p>
         </div>
       </footer>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletePortfolioId} onOpenChange={() => setDeletePortfolioId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this portfolio? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletePortfolioId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePortfolio}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Portfolio View Modal */}
+      {viewPortfolio && (
+        <PortfolioView 
+          portfolio={viewPortfolio} 
+          onClose={() => setViewPortfolio(null)} 
+        />
+      )}
     </div>
   );
 };

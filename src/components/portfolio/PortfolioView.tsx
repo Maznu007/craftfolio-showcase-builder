@@ -1,39 +1,11 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, X } from 'lucide-react';
+import { Download, X, ExternalLink, Github } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
-
-// Define portfolio structure
-interface PortfolioContent {
-  personalInfo: {
-    fullName: string;
-    email: string;
-  };
-  education: string;
-  workExperience: string;
-  awards: string;
-  volunteering: string;
-  languages: {
-    name: string;
-    proficiency: string;
-  }[];
-  computerSkills: {
-    name: string;
-    proficiency: string;
-  }[];
-}
-
-interface Portfolio {
-  id: string;
-  title: string;
-  description: string | null;
-  template_id: string;
-  content: PortfolioContent;
-  created_at: string;
-}
+import { Portfolio } from '@/types/portfolio';
 
 interface PortfolioViewProps {
   portfolio: Portfolio;
@@ -49,6 +21,8 @@ const proficiencyLabels: Record<string, string> = {
 };
 
 const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, onClose }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  
   const templateClasses = {
     'minimal': 'bg-white',
     'professional': 'bg-gray-50',
@@ -59,7 +33,7 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, onClose }) => 
   };
 
   const handleDownloadPDF = () => {
-    const element = document.getElementById('portfolio-content');
+    const element = contentRef.current;
     const opt = {
       margin: 1,
       filename: `${portfolio.title.replace(/\s+/g, '_')}.pdf`,
@@ -88,11 +62,32 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, onClose }) => 
           </div>
         </CardHeader>
         
-        <CardContent id="portfolio-content" className={`p-6 ${templateClasses[portfolio.template_id as keyof typeof templateClasses] || 'bg-white'}`}>
+        <CardContent 
+          ref={contentRef} 
+          id="portfolio-content" 
+          className={`p-6 ${templateClasses[portfolio.template_id as keyof typeof templateClasses] || 'bg-white'}`}
+        >
           <div className="space-y-8">
-            <div>
-              <h2 className="text-2xl font-bold mb-6">{portfolio.content.personalInfo.fullName}</h2>
-              <p className="text-gray-600">{portfolio.content.personalInfo.email}</p>
+            <div className="flex flex-col md:flex-row gap-6 items-start">
+              {portfolio.content.personalInfo.profilePicture && (
+                <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 border">
+                  <img 
+                    src={portfolio.content.personalInfo.profilePicture} 
+                    alt={portfolio.content.personalInfo.fullName} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100?text=Profile'}
+                  />
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold mb-2">{portfolio.content.personalInfo.fullName}</h2>
+                <p className="text-gray-600">{portfolio.content.personalInfo.email}</p>
+                
+                {portfolio.content.personalInfo.bio && (
+                  <p className="mt-3 text-gray-700">{portfolio.content.personalInfo.bio}</p>
+                )}
+              </div>
             </div>
             
             {portfolio.content.education && (
@@ -106,6 +101,53 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, onClose }) => 
               <div>
                 <h3 className="text-lg font-semibold border-b pb-2 mb-3">Work Experience</h3>
                 <p className="whitespace-pre-line">{portfolio.content.workExperience}</p>
+              </div>
+            )}
+            
+            {portfolio.content.projects && portfolio.content.projects.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold border-b pb-2 mb-3">Projects</h3>
+                <div className="space-y-4">
+                  {portfolio.content.projects.map((project, index) => (
+                    <div key={index} className="border rounded-md p-4">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-medium text-lg">{project.name}</h4>
+                        <div className="flex gap-2">
+                          {project.url && (
+                            <a 
+                              href={project.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          )}
+                          {project.repoUrl && (
+                            <a 
+                              href={project.repoUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <Github className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-700 my-2">{project.description}</p>
+                      
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {project.technologies?.map((tech, techIndex) => (
+                          <Badge key={techIndex} variant="secondary">
+                            {tech}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -10,7 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { LockIcon } from 'lucide-react';
+import { LockIcon, FileUp, Github, Linkedin } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import ImportDataModal from '@/components/ImportDataModal';
+import { PortfolioContent, safeParsePortfolioContent } from '@/types/portfolio';
 
 // Template options
 const TEMPLATES = [
@@ -76,12 +80,15 @@ const Portfolio = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editPortfolioId, setEditPortfolioId] = useState<string | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [profilePicture, setProfilePicture] = useState('');
   const [education, setEducation] = useState('');
   const [workExperience, setWorkExperience] = useState('');
   const [awards, setAwards] = useState('');
@@ -95,6 +102,17 @@ const Portfolio = () => {
   const [computerSkills, setComputerSkills] = useState([
     { name: 'MS Office', proficiency: 'professional' }
   ]);
+  
+  // Projects section
+  const [projects, setProjects] = useState<Array<{
+    name: string;
+    description: string;
+    technologies: string[];
+    url?: string;
+    repoUrl?: string;
+    startDate?: string;
+    endDate?: string;
+  }>>([]);
 
   // Check if we're in edit mode by looking for a portfolio ID in localStorage
   useEffect(() => {
@@ -132,23 +150,28 @@ const Portfolio = () => {
       setSelectedTemplate(data.template_id);
       setStep(2); // Skip to details form
 
-      // Set content values
-      const content = data.content;
-      if (content) {
-        setFullName(content.personalInfo?.fullName || '');
-        setEmail(content.personalInfo?.email || user?.email || '');
-        setEducation(content.education || '');
-        setWorkExperience(content.workExperience || '');
-        setAwards(content.awards || '');
-        setVolunteering(content.volunteering || '');
-        
-        if (content.languages && Array.isArray(content.languages) && content.languages.length > 0) {
-          setLanguages(content.languages);
-        }
-        
-        if (content.computerSkills && Array.isArray(content.computerSkills) && content.computerSkills.length > 0) {
-          setComputerSkills(content.computerSkills);
-        }
+      // Parse and set content values
+      const content = safeParsePortfolioContent(data.content);
+      
+      setFullName(content.personalInfo?.fullName || '');
+      setEmail(content.personalInfo?.email || user?.email || '');
+      setBio(content.personalInfo?.bio || '');
+      setProfilePicture(content.personalInfo?.profilePicture || '');
+      setEducation(content.education || '');
+      setWorkExperience(content.workExperience || '');
+      setAwards(content.awards || '');
+      setVolunteering(content.volunteering || '');
+      
+      if (content.languages && Array.isArray(content.languages) && content.languages.length > 0) {
+        setLanguages(content.languages);
+      }
+      
+      if (content.computerSkills && Array.isArray(content.computerSkills) && content.computerSkills.length > 0) {
+        setComputerSkills(content.computerSkills);
+      }
+      
+      if (content.projects && Array.isArray(content.projects) && content.projects.length > 0) {
+        setProjects(content.projects);
       }
     } catch (error) {
       console.error("Error loading portfolio:", error);
@@ -164,7 +187,7 @@ const Portfolio = () => {
   };
 
   // Check if template is premium and if user can access it
-  const canAccessTemplate = (template) => {
+  const canAccessTemplate = (template: any) => {
     if (!template.isPremium) return true;
     return userType === 'premium';
   };
@@ -173,13 +196,16 @@ const Portfolio = () => {
     setLanguages([...languages, { name: '', proficiency: 'beginner' }]);
   };
 
-  const handleUpdateLanguage = (index, field, value) => {
+  const handleUpdateLanguage = (index: number, field: string, value: any) => {
     const updatedLanguages = [...languages];
-    updatedLanguages[index][field] = value;
+    updatedLanguages[index] = {
+      ...updatedLanguages[index],
+      [field]: value
+    };
     setLanguages(updatedLanguages);
   };
 
-  const handleRemoveLanguage = (index) => {
+  const handleRemoveLanguage = (index: number) => {
     if (languages.length > 1) {
       setLanguages(languages.filter((_, i) => i !== index));
     }
@@ -189,19 +215,43 @@ const Portfolio = () => {
     setComputerSkills([...computerSkills, { name: '', proficiency: 'beginner' }]);
   };
 
-  const handleUpdateComputerSkill = (index, field, value) => {
+  const handleUpdateComputerSkill = (index: number, field: string, value: any) => {
     const updatedSkills = [...computerSkills];
-    updatedSkills[index][field] = value;
+    updatedSkills[index] = {
+      ...updatedSkills[index],
+      [field]: value
+    };
     setComputerSkills(updatedSkills);
   };
 
-  const handleRemoveComputerSkill = (index) => {
+  const handleRemoveComputerSkill = (index: number) => {
     if (computerSkills.length > 1) {
       setComputerSkills(computerSkills.filter((_, i) => i !== index));
     }
   };
+  
+  const handleAddProject = () => {
+    setProjects([...projects, {
+      name: '',
+      description: '',
+      technologies: []
+    }]);
+  };
+  
+  const handleUpdateProject = (index: number, field: string, value: any) => {
+    const updatedProjects = [...projects];
+    updatedProjects[index] = {
+      ...updatedProjects[index],
+      [field]: value
+    };
+    setProjects(updatedProjects);
+  };
+  
+  const handleRemoveProject = (index: number) => {
+    setProjects(projects.filter((_, i) => i !== index));
+  };
 
-  const handleSelectTemplate = (templateId) => {
+  const handleSelectTemplate = (templateId: string) => {
     const template = TEMPLATES.find(t => t.id === templateId);
     
     if (template && template.isPremium && userType !== 'premium') {
@@ -216,8 +266,22 @@ const Portfolio = () => {
     setSelectedTemplate(templateId);
     setStep(2);
   };
+  
+  const handleImportData = (importedData: any) => {
+    if (importedData.workExperience) {
+      setWorkExperience(importedData.workExperience);
+    }
+    
+    if (importedData.computerSkills && importedData.computerSkills.length > 0) {
+      setComputerSkills(importedData.computerSkills);
+    }
+    
+    if (importedData.projects && importedData.projects.length > 0) {
+      setProjects(importedData.projects);
+    }
+  };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title) {
@@ -233,10 +297,12 @@ const Portfolio = () => {
     
     try {
       // Prepare portfolio data
-      const portfolioContent = {
+      const portfolioContent: PortfolioContent = {
         personalInfo: {
           fullName,
           email,
+          bio,
+          profilePicture
         },
         education,
         workExperience,
@@ -244,6 +310,7 @@ const Portfolio = () => {
         volunteering,
         languages,
         computerSkills,
+        projects
       };
       
       if (isEditing && editPortfolioId) {
@@ -274,7 +341,7 @@ const Portfolio = () => {
             description,
             template_id: selectedTemplate,
             content: portfolioContent,
-            user_id: user.id
+            user_id: user?.id
           });
           
         if (error) throw error;
@@ -294,7 +361,7 @@ const Portfolio = () => {
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving portfolio:", error);
       toast({
         variant: "destructive",
@@ -398,7 +465,18 @@ const Portfolio = () => {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>{isEditing ? 'Edit Portfolio Details' : 'Portfolio Details'}</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>{isEditing ? 'Edit Portfolio Details' : 'Portfolio Details'}</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowImportModal(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <FileUp className="h-4 w-4" />
+                    Import Data
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -447,6 +525,37 @@ const Portfolio = () => {
                         required
                       />
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea 
+                      id="bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Write a brief description about yourself..."
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="profilePicture">Profile Picture URL</Label>
+                    <Input 
+                      id="profilePicture"
+                      value={profilePicture}
+                      onChange={(e) => setProfilePicture(e.target.value)}
+                      placeholder="https://example.com/your-image.jpg"
+                    />
+                    {profilePicture && (
+                      <div className="mt-2 w-20 h-20 overflow-hidden rounded-full border">
+                        <img 
+                          src={profilePicture} 
+                          alt="Profile Preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Error'}
+                        />
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
@@ -594,6 +703,111 @@ const Portfolio = () => {
                     ))}
                   </div>
                   
+                  {/* Projects Section */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <Label>Projects</Label>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleAddProject}
+                      >
+                        Add Project
+                      </Button>
+                    </div>
+                    
+                    {projects.map((project, index) => (
+                      <div key={index} className="border rounded-md p-4 space-y-4">
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">Project {index + 1}</h4>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveProject(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`project-name-${index}`}>Name</Label>
+                          <Input 
+                            id={`project-name-${index}`}
+                            value={project.name}
+                            onChange={(e) => handleUpdateProject(index, 'name', e.target.value)}
+                            placeholder="Project Name"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`project-desc-${index}`}>Description</Label>
+                          <Textarea 
+                            id={`project-desc-${index}`}
+                            value={project.description}
+                            onChange={(e) => handleUpdateProject(index, 'description', e.target.value)}
+                            placeholder="Describe your project..."
+                            rows={2}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor={`project-tech-${index}`}>Technologies</Label>
+                          <Input 
+                            id={`project-tech-${index}`}
+                            value={project.technologies?.join(', ')}
+                            onChange={(e) => handleUpdateProject(
+                              index, 
+                              'technologies', 
+                              e.target.value.split(',').map(t => t.trim()).filter(Boolean)
+                            )}
+                            placeholder="React, TypeScript, Node.js"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor={`project-url-${index}`}>Project URL</Label>
+                            <Input 
+                              id={`project-url-${index}`}
+                              value={project.url || ''}
+                              onChange={(e) => handleUpdateProject(index, 'url', e.target.value)}
+                              placeholder="https://myproject.com"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor={`project-repo-${index}`}>Repository URL</Label>
+                            <Input 
+                              id={`project-repo-${index}`}
+                              value={project.repoUrl || ''}
+                              onChange={(e) => handleUpdateProject(index, 'repoUrl', e.target.value)}
+                              placeholder="https://github.com/username/repo"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {projects.length === 0 && (
+                      <div className="text-center py-4 border rounded-md bg-gray-50">
+                        <p className="text-gray-500">No projects added yet. Add a project or import from GitHub.</p>
+                        <div className="flex gap-2 justify-center mt-2">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddProject}
+                            className="mt-2"
+                          >
+                            Add Project Manually
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="volunteering">Volunteering</Label>
                     <Textarea 
@@ -632,6 +846,14 @@ const Portfolio = () => {
           <p>© 2025 CRAFTFOLIO. All rights reserved.</p>
         </div>
       </footer>
+      
+      {/* Import Data Modal */}
+      <ImportDataModal 
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        userId={user?.id || ''}
+        onDataImport={handleImportData}
+      />
     </div>
   );
 };

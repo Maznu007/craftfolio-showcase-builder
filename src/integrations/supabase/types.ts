@@ -42,6 +42,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          profile_data: Json | null
+          refresh_token: string | null
+          service_name: string
+          service_user_id: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          profile_data?: Json | null
+          refresh_token?: string | null
+          service_name: string
+          service_user_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          profile_data?: Json | null
+          refresh_token?: string | null
+          service_name?: string
+          service_user_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

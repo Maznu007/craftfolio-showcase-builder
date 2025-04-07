@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Speaker, Book, DollarSign, Users, ChevronDown, User } from 'lucide-react';
+import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
