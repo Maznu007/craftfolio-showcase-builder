@@ -134,7 +134,7 @@ const AuthCallback = () => {
         
         // Redirect back to profile page
         setTimeout(() => navigate('/profile'), 1500);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in auth callback:', error);
         toast({
           variant: "destructive",

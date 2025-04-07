@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -9,15 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Github, Linkedin, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-interface ServiceConnection {
-  id: string;
-  service_name: string;
-  service_user_id: string;
-  profile_data: any;
-  created_at: string;
-  updated_at: string;
-}
+import { ServiceConnection } from '@/types/portfolio';
 
 const Profile = () => {
   const { user } = useAuth();

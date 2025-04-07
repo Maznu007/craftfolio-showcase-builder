@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -14,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2 } from 'lucide-react';
+import { ServiceConnection } from '@/types/portfolio';
 
 interface ImportDataModalProps {
   isOpen: boolean;
@@ -34,7 +34,7 @@ interface ImportOption {
 const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, userId, onDataImport }) => {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
-  const [connections, setConnections] = useState<any[]>([]);
+  const [connections, setConnections] = useState<ServiceConnection[]>([]);
   const [importOptions, setImportOptions] = useState<ImportOption[]>([]);
   
   useEffect(() => {
@@ -67,7 +67,7 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, user
     }
   };
   
-  const generateImportOptions = (connections: any[]) => {
+  const generateImportOptions = (connections: ServiceConnection[]) => {
     const options: ImportOption[] = [];
     
     const githubConn = connections.find(c => c.service_name === 'github');
@@ -132,7 +132,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, user
     setImporting(true);
     
     try {
-      // Prepare data to import
       const importData: any = {};
       
       for (const option of selectedOptions) {
@@ -153,7 +152,6 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, user
             break;
             
           case 'linkedin-experience':
-            // Format LinkedIn work experience into a string
             const experiences = connection.profile_data?.experiences || [];
             importData.workExperience = experiences.map((exp: any) => 
               `${exp.title} at ${exp.company} (${exp.startDate} - ${exp.endDate || 'Present'})\n${exp.description || ''}`
@@ -161,17 +159,15 @@ const ImportDataModal: React.FC<ImportDataModalProps> = ({ isOpen, onClose, user
             break;
             
           case 'linkedin-skills':
-            // Format LinkedIn skills into computer skills array
             const skills = connection.profile_data?.skills || [];
             importData.computerSkills = skills.map((skill: string) => ({
               name: skill,
-              proficiency: 'intermediate' // Default proficiency
+              proficiency: 'intermediate'
             }));
             break;
         }
       }
       
-      // Call the callback with imported data
       onDataImport(importData);
       
       toast({

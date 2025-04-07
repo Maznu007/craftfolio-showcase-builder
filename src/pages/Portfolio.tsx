@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -15,8 +14,8 @@ import { LockIcon, FileUp, Github, Linkedin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import ImportDataModal from '@/components/ImportDataModal';
 import { PortfolioContent, safeParsePortfolioContent } from '@/types/portfolio';
+import { Json } from '@/integrations/supabase/types';
 
-// Template options
 const TEMPLATES = [
   {
     id: 'minimal',
@@ -62,7 +61,6 @@ const TEMPLATES = [
   }
 ];
 
-// Proficiency levels
 const PROFICIENCY_LEVELS = [
   { value: 'beginner', label: 'Beginner' },
   { value: 'intermediate', label: 'Intermediate' },
@@ -75,14 +73,13 @@ const Portfolio = () => {
   const { user, userType } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: Template selection, 2: Details form
+  const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editPortfolioId, setEditPortfolioId] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // Form fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [fullName, setFullName] = useState('');
@@ -94,7 +91,6 @@ const Portfolio = () => {
   const [awards, setAwards] = useState('');
   const [volunteering, setVolunteering] = useState('');
   
-  // Skills sections
   const [languages, setLanguages] = useState([
     { name: 'English', proficiency: 'native' }
   ]);
@@ -103,7 +99,6 @@ const Portfolio = () => {
     { name: 'MS Office', proficiency: 'professional' }
   ]);
   
-  // Projects section
   const [projects, setProjects] = useState<Array<{
     name: string;
     description: string;
@@ -114,7 +109,6 @@ const Portfolio = () => {
     endDate?: string;
   }>>([]);
 
-  // Check if we're in edit mode by looking for a portfolio ID in localStorage
   useEffect(() => {
     if (!user) {
       navigate('/auth');
@@ -122,7 +116,6 @@ const Portfolio = () => {
       setEmail(user.email);
     }
 
-    // Check for edit mode
     const storedPortfolioId = localStorage.getItem('editPortfolioId');
     if (storedPortfolioId) {
       setEditPortfolioId(storedPortfolioId);
@@ -131,7 +124,6 @@ const Portfolio = () => {
     }
   }, [user, navigate]);
 
-  // Load portfolio data for editing
   const loadPortfolioData = async (portfolioId: string) => {
     setLoading(true);
     try {
@@ -144,13 +136,11 @@ const Portfolio = () => {
       if (error) throw error;
       if (!data) throw new Error("Portfolio not found");
 
-      // Set form values from the loaded portfolio
       setTitle(data.title);
       setDescription(data.description || '');
       setSelectedTemplate(data.template_id);
-      setStep(2); // Skip to details form
+      setStep(2);
 
-      // Parse and set content values
       const content = safeParsePortfolioContent(data.content);
       
       setFullName(content.personalInfo?.fullName || '');
@@ -186,7 +176,6 @@ const Portfolio = () => {
     }
   };
 
-  // Check if template is premium and if user can access it
   const canAccessTemplate = (template: any) => {
     if (!template.isPremium) return true;
     return userType === 'premium';
@@ -296,7 +285,6 @@ const Portfolio = () => {
     setLoading(true);
     
     try {
-      // Prepare portfolio data
       const portfolioContent: PortfolioContent = {
         personalInfo: {
           fullName,
@@ -314,14 +302,13 @@ const Portfolio = () => {
       };
       
       if (isEditing && editPortfolioId) {
-        // Update existing portfolio
         const { error } = await supabase
           .from('portfolios')
           .update({
             title,
             description,
             template_id: selectedTemplate,
-            content: portfolioContent,
+            content: portfolioContent as unknown as Json,
             updated_at: new Date().toISOString()
           })
           .eq('id', editPortfolioId);
@@ -333,14 +320,13 @@ const Portfolio = () => {
           description: "Your portfolio has been updated successfully.",
         });
       } else {
-        // Create new portfolio
         const { error } = await supabase
           .from('portfolios')
           .insert({
             title,
             description,
             template_id: selectedTemplate,
-            content: portfolioContent,
+            content: portfolioContent as unknown as Json,
             user_id: user?.id
           });
           
@@ -354,10 +340,8 @@ const Portfolio = () => {
       
       setSaveSuccess(true);
       
-      // Clear the editPortfolioId from localStorage
       localStorage.removeItem('editPortfolioId');
       
-      // Navigate to dashboard after a short delay
       setTimeout(() => {
         navigate('/dashboard');
       }, 2000);
@@ -375,17 +359,15 @@ const Portfolio = () => {
 
   const handleBack = () => {
     if (isEditing) {
-      // If editing, go back to dashboard
       localStorage.removeItem('editPortfolioId');
       navigate('/dashboard');
     } else {
-      // Otherwise just go back to template selection
       setStep(1);
     }
   };
 
   if (!user) {
-    return null; // Don't render anything while redirecting
+    return null;
   }
 
   if (loading && isEditing) {
@@ -591,7 +573,6 @@ const Portfolio = () => {
                     />
                   </div>
                   
-                  {/* Languages Section */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <Label>Languages</Label>
@@ -647,7 +628,6 @@ const Portfolio = () => {
                     ))}
                   </div>
                   
-                  {/* Computer Skills Section */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <Label>Computer Skills</Label>
@@ -703,7 +683,6 @@ const Portfolio = () => {
                     ))}
                   </div>
                   
-                  {/* Projects Section */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <Label>Projects</Label>
@@ -847,7 +826,6 @@ const Portfolio = () => {
         </div>
       </footer>
       
-      {/* Import Data Modal */}
       <ImportDataModal 
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}

@@ -42,6 +42,19 @@ export interface Portfolio {
   user_id: string;
 }
 
+export interface ServiceConnection {
+  id: string;
+  service_name: string;
+  service_user_id: string;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  profile_data: any;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
 // Helper function to safely parse portfolio content from JSON
 export function safeParsePortfolioContent(content: Json): PortfolioContent {
   if (typeof content === 'object' && content !== null) {
