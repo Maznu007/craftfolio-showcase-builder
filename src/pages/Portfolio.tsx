@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -8,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,6 +74,8 @@ const Portfolio = () => {
   const [step, setStep] = useState(1); // 1: Template selection, 2: Details form
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editPortfolioId, setEditPortfolioId] = useState<string | null>(null);
 
   // Form fields
   const [title, setTitle] = useState('');
@@ -97,14 +96,72 @@ const Portfolio = () => {
     { name: 'MS Office', proficiency: 'professional' }
   ]);
 
-  // Redirect to login if not authenticated
+  // Check if we're in edit mode by looking for a portfolio ID in localStorage
   useEffect(() => {
     if (!user) {
       navigate('/auth');
     } else if (user.email) {
       setEmail(user.email);
     }
+
+    // Check for edit mode
+    const storedPortfolioId = localStorage.getItem('editPortfolioId');
+    if (storedPortfolioId) {
+      setEditPortfolioId(storedPortfolioId);
+      setIsEditing(true);
+      loadPortfolioData(storedPortfolioId);
+    }
   }, [user, navigate]);
+
+  // Load portfolio data for editing
+  const loadPortfolioData = async (portfolioId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('id', portfolioId)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("Portfolio not found");
+
+      // Set form values from the loaded portfolio
+      setTitle(data.title);
+      setDescription(data.description || '');
+      setSelectedTemplate(data.template_id);
+      setStep(2); // Skip to details form
+
+      // Set content values
+      const content = data.content;
+      if (content) {
+        setFullName(content.personalInfo?.fullName || '');
+        setEmail(content.personalInfo?.email || user?.email || '');
+        setEducation(content.education || '');
+        setWorkExperience(content.workExperience || '');
+        setAwards(content.awards || '');
+        setVolunteering(content.volunteering || '');
+        
+        if (content.languages && Array.isArray(content.languages) && content.languages.length > 0) {
+          setLanguages(content.languages);
+        }
+        
+        if (content.computerSkills && Array.isArray(content.computerSkills) && content.computerSkills.length > 0) {
+          setComputerSkills(content.computerSkills);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading portfolio:", error);
+      toast({
+        variant: "destructive",
+        title: "Error loading portfolio",
+        description: "Could not load the portfolio for editing. Please try again."
+      });
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check if template is premium and if user can access it
   const canAccessTemplate = (template) => {
@@ -189,25 +246,49 @@ const Portfolio = () => {
         computerSkills,
       };
       
-      // Save portfolio to Supabase
-      const { data, error } = await supabase
-        .from('portfolios')
-        .insert({
-          title,
-          description,
-          template_id: selectedTemplate,
-          content: portfolioContent,
-          user_id: user.id
+      if (isEditing && editPortfolioId) {
+        // Update existing portfolio
+        const { error } = await supabase
+          .from('portfolios')
+          .update({
+            title,
+            description,
+            template_id: selectedTemplate,
+            content: portfolioContent,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editPortfolioId);
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Portfolio updated",
+          description: "Your portfolio has been updated successfully.",
         });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Portfolio saved",
-        description: "Your portfolio has been saved successfully.",
-      });
+      } else {
+        // Create new portfolio
+        const { error } = await supabase
+          .from('portfolios')
+          .insert({
+            title,
+            description,
+            template_id: selectedTemplate,
+            content: portfolioContent,
+            user_id: user.id
+          });
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Portfolio saved",
+          description: "Your portfolio has been saved successfully.",
+        });
+      }
       
       setSaveSuccess(true);
+      
+      // Clear the editPortfolioId from localStorage
+      localStorage.removeItem('editPortfolioId');
       
       // Navigate to dashboard after a short delay
       setTimeout(() => {
@@ -226,11 +307,31 @@ const Portfolio = () => {
   };
 
   const handleBack = () => {
-    setStep(1);
+    if (isEditing) {
+      // If editing, go back to dashboard
+      localStorage.removeItem('editPortfolioId');
+      navigate('/dashboard');
+    } else {
+      // Otherwise just go back to template selection
+      setStep(1);
+    }
   };
 
   if (!user) {
     return null; // Don't render anything while redirecting
+  }
+
+  if (loading && isEditing) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-6">Loading Portfolio...</h1>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -239,7 +340,9 @@ const Portfolio = () => {
       
       <main className="flex-1 container mx-auto px-4 py-10">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Create Your Portfolio</h1>
+          <h1 className="text-3xl font-bold mb-6">
+            {isEditing ? 'Edit Your Portfolio' : 'Create Your Portfolio'}
+          </h1>
           
           {step === 1 ? (
             <div>
@@ -295,7 +398,7 @@ const Portfolio = () => {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Portfolio Details</CardTitle>
+                <CardTitle>{isEditing ? 'Edit Portfolio Details' : 'Portfolio Details'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -508,13 +611,13 @@ const Portfolio = () => {
                       type="button"
                       onClick={handleBack}
                     >
-                      Back to Templates
+                      {isEditing ? 'Back to Dashboard' : 'Back to Templates'}
                     </Button>
                     <Button 
                       type="submit"
                       disabled={loading || saveSuccess}
                     >
-                      {loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Portfolio'}
+                      {loading ? 'Saving...' : saveSuccess ? 'Saved!' : isEditing ? 'Update Portfolio' : 'Save Portfolio'}
                     </Button>
                   </div>
                 </form>

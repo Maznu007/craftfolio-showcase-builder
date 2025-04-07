@@ -8,12 +8,46 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlusIcon, FileIcon, LockIcon, PencilIcon, EyeIcon, Trash2Icon } from 'lucide-react';
+import PortfolioView from '@/components/portfolio/PortfolioView';
+
+// Portfolio content interface
+interface PortfolioContent {
+  personalInfo: {
+    fullName: string;
+    email: string;
+  };
+  education: string;
+  workExperience: string;
+  awards: string;
+  volunteering: string;
+  languages: {
+    name: string;
+    proficiency: string;
+  }[];
+  computerSkills: {
+    name: string;
+    proficiency: string;
+  }[];
+}
+
+// Portfolio interface
+interface Portfolio {
+  id: string;
+  title: string;
+  description: string | null;
+  template_id: string;
+  content: PortfolioContent;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
 
 const Dashboard = () => {
   const { user, userType, signOut } = useAuth();
   const navigate = useNavigate();
-  const [portfolios, setPortfolios] = useState([]);
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewingPortfolio, setViewingPortfolio] = useState<Portfolio | null>(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -54,7 +88,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeletePortfolio = async (id) => {
+  const handleDeletePortfolio = async (id: string) => {
     if (!confirm("Are you sure you want to delete this portfolio?")) return;
     
     try {
@@ -82,21 +116,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleViewPortfolio = (portfolio) => {
-    // For now, just display portfolio details in a toast
-    toast({
-      title: "View Portfolio",
-      description: "Portfolio viewing feature coming soon!",
-    });
+  const handleViewPortfolio = (portfolio: Portfolio) => {
+    setViewingPortfolio(portfolio);
   };
 
-  const handleEditPortfolio = (portfolio) => {
-    // For now, just navigate to create portfolio page
-    // In a real implementation, this would pre-populate the form with the portfolio data
-    toast({
-      title: "Edit Portfolio",
-      description: "Portfolio editing feature coming soon!",
-    });
+  const handleEditPortfolio = (portfolio: Portfolio) => {
+    // Store the portfolio ID in localStorage to pre-populate the form
+    localStorage.setItem('editPortfolioId', portfolio.id);
     navigate('/portfolio/create');
   };
 
@@ -284,6 +310,14 @@ const Dashboard = () => {
           )}
         </div>
       </main>
+      
+      {/* Portfolio Viewer Modal */}
+      {viewingPortfolio && (
+        <PortfolioView 
+          portfolio={viewingPortfolio} 
+          onClose={() => setViewingPortfolio(null)} 
+        />
+      )}
       
       <footer className="bg-white py-6 mt-20">
         <div className="container mx-auto px-4 text-center text-sm text-gray-500">
