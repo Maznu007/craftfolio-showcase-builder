@@ -1,27 +1,35 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/context/AuthContext';
 import { AlertCircle } from 'lucide-react';
 
 const Auth = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [resetPassword, setResetPassword] = useState(false);
+  
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -33,16 +41,25 @@ const Auth = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Success!",
-        description: "Check your email for the confirmation link.",
-      });
+      if (data.user) {
+        toast({
+          title: "Success!",
+          description: "Account created successfully. You are now logged in.",
+        });
+        navigate('/');
+      } else {
+        toast({
+          title: "Success!",
+          description: "Check your email for the confirmation link.",
+        });
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error signing up",
         description: error.message,
       });
+      console.error("Sign up error:", error);
     } finally {
       setLoading(false);
     }
@@ -53,13 +70,17 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
       if (error) throw error;
       
+      toast({
+        title: "Logged in successfully",
+        description: `Welcome back, ${email}!`,
+      });
       navigate('/');
     } catch (error: any) {
       toast({
@@ -67,6 +88,7 @@ const Auth = () => {
         title: "Error logging in",
         description: error.message,
       });
+      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
@@ -94,10 +116,13 @@ const Auth = () => {
         title: "Error resetting password",
         description: error.message,
       });
+      console.error("Password reset error:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  const defaultTab = location.state?.defaultTab === 'signup' ? 'signup' : 'login';
 
   if (resetPassword) {
     return (
@@ -154,7 +179,7 @@ const Auth = () => {
           <p className="text-muted-foreground mt-2">Create and showcase your portfolio</p>
         </div>
         
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Log In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
