@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -12,6 +12,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { LockIcon } from 'lucide-react';
 
 // Template options
 const TEMPLATES = [
@@ -19,19 +21,43 @@ const TEMPLATES = [
     id: 'minimal',
     name: 'Minimal',
     description: 'Clean and simple design focusing on content',
-    previewImage: 'https://via.placeholder.com/150?text=Minimal'
+    previewImage: 'https://via.placeholder.com/150?text=Minimal',
+    isPremium: false
   },
   {
     id: 'professional',
     name: 'Professional',
     description: 'Traditional format ideal for corporate roles',
-    previewImage: 'https://via.placeholder.com/150?text=Professional'
+    previewImage: 'https://via.placeholder.com/150?text=Professional',
+    isPremium: false
   },
   {
     id: 'creative',
     name: 'Creative',
     description: 'Colorful and dynamic layout for creative fields',
-    previewImage: 'https://via.placeholder.com/150?text=Creative'
+    previewImage: 'https://via.placeholder.com/150?text=Creative',
+    isPremium: false
+  },
+  {
+    id: 'premium-modern',
+    name: 'Modern Premium',
+    description: 'Sleek, contemporary design with advanced layout',
+    previewImage: 'https://via.placeholder.com/150?text=Premium+Modern',
+    isPremium: true
+  },
+  {
+    id: 'premium-executive',
+    name: 'Executive Premium',
+    description: 'Elegant design for senior professionals and executives',
+    previewImage: 'https://via.placeholder.com/150?text=Premium+Executive',
+    isPremium: true
+  },
+  {
+    id: 'premium-creative',
+    name: 'Creative Premium',
+    description: 'Bold, innovative design for creative industries',
+    previewImage: 'https://via.placeholder.com/150?text=Premium+Creative',
+    isPremium: true
   }
 ];
 
@@ -50,6 +76,7 @@ const Portfolio = () => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1: Template selection, 2: Details form
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Form fields
   const [title, setTitle] = useState('');
@@ -71,11 +98,19 @@ const Portfolio = () => {
   ]);
 
   // Redirect to login if not authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user) {
       navigate('/auth');
+    } else if (user.email) {
+      setEmail(user.email);
     }
   }, [user, navigate]);
+
+  // Check if template is premium and if user can access it
+  const canAccessTemplate = (template) => {
+    if (!template.isPremium) return true;
+    return userType === 'premium';
+  };
 
   const handleAddLanguage = () => {
     setLanguages([...languages, { name: '', proficiency: 'beginner' }]);
@@ -110,6 +145,17 @@ const Portfolio = () => {
   };
 
   const handleSelectTemplate = (templateId) => {
+    const template = TEMPLATES.find(t => t.id === templateId);
+    
+    if (template && template.isPremium && userType !== 'premium') {
+      toast({
+        variant: "destructive",
+        title: "Premium Template",
+        description: "This template is only available to premium users. Please upgrade your account to access it.",
+      });
+      return;
+    }
+    
     setSelectedTemplate(templateId);
     setStep(2);
   };
@@ -130,10 +176,7 @@ const Portfolio = () => {
     
     try {
       // Prepare portfolio data
-      const portfolioData = {
-        title,
-        description,
-        template: selectedTemplate,
+      const portfolioContent = {
         personalInfo: {
           fullName,
           email,
@@ -146,24 +189,36 @@ const Portfolio = () => {
         computerSkills,
       };
       
-      // Placeholder for portfolio creation logic
-      // This would typically involve a Supabase call to store the portfolio data
-      console.log('Saving portfolio data:', portfolioData);
+      // Save portfolio to Supabase
+      const { data, error } = await supabase
+        .from('portfolios')
+        .insert({
+          title,
+          description,
+          template_id: selectedTemplate,
+          content: portfolioContent,
+          user_id: user.id
+        });
+      
+      if (error) throw error;
       
       toast({
-        title: "Portfolio created",
-        description: "Your portfolio has been created successfully.",
+        title: "Portfolio saved",
+        description: "Your portfolio has been saved successfully.",
       });
       
-      // Navigate to a portfolio list page
+      setSaveSuccess(true);
+      
+      // Navigate to dashboard after a short delay
       setTimeout(() => {
         navigate('/dashboard');
-      }, 1500);
+      }, 2000);
     } catch (error) {
+      console.error("Error saving portfolio:", error);
       toast({
         variant: "destructive",
-        title: "Error creating portfolio",
-        description: error.message || "There was an error creating your portfolio.",
+        title: "Error saving portfolio",
+        description: error.message || "There was an error saving your portfolio.",
       });
     } finally {
       setLoading(false);
@@ -193,11 +248,21 @@ const Portfolio = () => {
                 {TEMPLATES.map((template) => (
                   <Card 
                     key={template.id} 
-                    className={`cursor-pointer transition-all ${selectedTemplate === template.id ? 'ring-2 ring-primary' : 'hover:shadow-lg'}`}
+                    className={`relative cursor-pointer transition-all ${selectedTemplate === template.id ? 'ring-2 ring-primary' : 'hover:shadow-lg'} ${template.isPremium && userType !== 'premium' ? 'opacity-70' : ''}`}
                     onClick={() => handleSelectTemplate(template.id)}
                   >
+                    {template.isPremium && userType !== 'premium' && (
+                      <div className="absolute top-2 right-2 bg-yellow-500 text-white rounded-full p-1">
+                        <LockIcon size={16} />
+                      </div>
+                    )}
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {template.name}
+                        {template.isPremium && (
+                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">Premium</span>
+                        )}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="mb-3 aspect-video bg-gray-100 flex items-center justify-center">
@@ -212,6 +277,20 @@ const Portfolio = () => {
                   </Card>
                 ))}
               </div>
+              
+              {userType !== 'premium' && (
+                <div className="mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h3 className="font-semibold text-yellow-800">Premium Templates Available</h3>
+                  <p className="text-yellow-700 mt-1">Upgrade to a premium account to access our exclusive templates and features.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-2 bg-yellow-500 hover:bg-yellow-600 text-white hover:text-white"
+                    onClick={() => navigate('/upgrade')}
+                  >
+                    Upgrade Now
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <Card>
@@ -433,9 +512,9 @@ const Portfolio = () => {
                     </Button>
                     <Button 
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || saveSuccess}
                     >
-                      {loading ? 'Creating...' : 'Create Portfolio'}
+                      {loading ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save Portfolio'}
                     </Button>
                   </div>
                 </form>
