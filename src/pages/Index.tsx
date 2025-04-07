@@ -1,10 +1,23 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PortfolioExamples from '@/components/PortfolioExamples';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleCTA = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
@@ -24,8 +37,9 @@ const Index = () => {
             <div className="mt-8">
               <Button 
                 className="rounded-full px-8 py-6 text-lg bg-craftfolio-pink text-black hover:bg-opacity-90"
+                onClick={handleCTA}
               >
-                Get Started
+                {user ? 'Go to Dashboard' : 'Get Started'}
               </Button>
             </div>
           </div>
