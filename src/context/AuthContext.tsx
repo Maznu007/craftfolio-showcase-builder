@@ -9,6 +9,7 @@ type AuthContextType = {
   loading: boolean;
   userType: 'free' | 'premium' | null;
   signOut: () => Promise<void>;
+  refreshUserProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   userType: null,
   signOut: async () => {},
+  refreshUserProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -30,26 +32,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user profile from the profiles table
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Use the metadata approach as fallback until profiles table is properly set up
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      console.log('Fetching profile for user:', userId);
       
-      if (userError) {
-        console.error('Error fetching user:', userError);
+      // First try to fetch from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        
+        // Use the metadata approach as fallback
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('Error fetching user:', userError);
+          return;
+        }
+        
+        // Check if user has premium status in metadata
+        if (userData.user?.user_metadata?.user_type) {
+          setUserType(userData.user.user_metadata.user_type as 'free' | 'premium');
+          return;
+        }
+        
+        // Default to free if no user type is found
+        setUserType('free');
         return;
       }
       
-      // Check if user has premium status in metadata
-      if (userData.user?.user_metadata?.user_type) {
-        setUserType(userData.user.user_metadata.user_type as 'free' | 'premium');
-        return;
-      }
+      console.log('Profile data retrieved:', profileData);
       
-      // Default to free if no user type is found
-      setUserType('free');
+      // Set user type from profiles table
+      if (profileData && profileData.user_type) {
+        setUserType(profileData.user_type as 'free' | 'premium');
+      } else {
+        setUserType('free');
+      }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       // Default to free if there's an error
       setUserType('free');
+    }
+  };
+
+  // Function to manually refresh user profile data
+  const refreshUserProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
     }
   };
 
@@ -96,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, userType, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, userType, signOut, refreshUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

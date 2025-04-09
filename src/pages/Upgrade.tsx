@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 const Upgrade = () => {
-  const { user, userType } = useAuth();
+  const { user, userType, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
 
   // Redirect to login if not authenticated
@@ -32,6 +32,9 @@ const Upgrade = () => {
       
       if (error) throw error;
       
+      // Refresh the user profile to get the latest user type
+      await refreshUserProfile();
+      
       toast({
         title: "Upgrade successful!",
         description: "You are now a premium user. Enjoy all the premium features!",
@@ -39,9 +42,6 @@ const Upgrade = () => {
       
       // In a real application, this would also include payment processing
       // and would only update the subscription after successful payment
-      
-      // Refresh the page to update the UI
-      window.location.reload();
     } catch (error: any) {
       console.error('Error upgrading plan:', error);
       toast({

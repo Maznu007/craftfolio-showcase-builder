@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin } from 'lucide-react';
@@ -19,9 +19,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
-  const { user, signOut, userType } = useAuth();
+  const { user, signOut, userType, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Refresh user profile when navbar mounts or route changes
+  useEffect(() => {
+    if (user) {
+      refreshUserProfile();
+    }
+  }, [location.pathname, user, refreshUserProfile]);
 
   const handleAuthAction = (action: 'signup' | 'login') => {
     navigate('/auth', { state: { defaultTab: action } });
