@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin } from 'lucide-react';
 import { 
@@ -21,6 +21,7 @@ import {
 const Navbar = () => {
   const { user, signOut, userType } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAuthAction = (action: 'signup' | 'login') => {
     navigate('/auth', { state: { defaultTab: action } });
@@ -35,7 +36,11 @@ const Navbar = () => {
   };
 
   const scrollToPricing = () => {
-    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    if (location.pathname === '/') {
+      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/#pricing');
+    }
   };
 
   return (
@@ -76,7 +81,7 @@ const Navbar = () => {
           </Popover>
 
           <button 
-            className="flex items-center space-x-1 nav-link"
+            className="flex items-center space-x-1 nav-link cursor-pointer"
             onClick={scrollToPricing}
           >
             <DollarSign className="h-4 w-4" />

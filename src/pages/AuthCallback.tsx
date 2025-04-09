@@ -33,7 +33,7 @@ const AuthCallback = () => {
     
     const handleCallback = async () => {
       try {
-        // For OAuth providers, we need to extract user info from session
+        // Get the current session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
@@ -53,61 +53,63 @@ const AuthCallback = () => {
         let serviceUserId = '';
         
         if (provider === 'github') {
-          // Simulate GitHub profile data since we don't have real API keys in this demo
-          profileData = {
-            login: 'github_user',
-            name: 'GitHub User',
-            avatar_url: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-            repos_url: 'https://api.github.com/users/github_user/repos',
-            repos: [
-              {
-                name: 'Portfolio Project',
-                description: 'A modern portfolio site built with React',
-                html_url: 'https://github.com/github_user/portfolio',
-                language: 'TypeScript',
-                created_at: '2023-01-15T12:00:00Z',
-                updated_at: '2023-03-20T15:30:00Z'
-              },
-              {
-                name: 'E-commerce Store',
-                description: 'Full-stack e-commerce site with payment integration',
-                html_url: 'https://github.com/github_user/ecommerce',
-                language: 'JavaScript',
-                created_at: '2022-08-10T09:15:00Z',
-                updated_at: '2023-02-05T11:45:00Z'
-              }
-            ]
-          };
-          serviceUserId = 'github_123456';
+          // Fetch GitHub profile with the access token
+          const githubResponse = await fetch('https://api.github.com/user', {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          
+          if (!githubResponse.ok) {
+            throw new Error('Failed to fetch GitHub profile');
+          }
+          
+          profileData = await githubResponse.json();
+          serviceUserId = profileData.id;
+          
+          // Fetch repositories
+          const reposResponse = await fetch(`${profileData.repos_url}?sort=updated&per_page=10`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
+            }
+          });
+          
+          if (reposResponse.ok) {
+            const repos = await reposResponse.json();
+            profileData.repos = repos;
+          }
         } else if (provider === 'linkedin') {
-          // Simulate LinkedIn profile data
-          profileData = {
-            id: 'linkedin_123456',
-            name: 'LinkedIn User',
-            email: 'linkedin_user@example.com',
-            picture: 'https://media.licdn.com/dms/image/placeholder.jpg',
-            experiences: [
-              {
-                title: 'Senior Web Developer',
-                company: 'Tech Solutions Inc.',
-                startDate: '2019-05',
-                endDate: 'Present',
-                description: 'Leading a team of developers building enterprise web applications.'
-              },
-              {
-                title: 'Web Developer',
-                company: 'Digital Agency',
-                startDate: '2016-08',
-                endDate: '2019-04',
-                description: 'Developed responsive websites and web applications for various clients.'
+          // For LinkedIn, we need to use LinkedIn API with the access token
+          // This is a simplified version as LinkedIn API requires proper setup
+          try {
+            const linkedinResponse = await fetch('https://api.linkedin.com/v2/me', {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
               }
-            ],
-            skills: [
-              'JavaScript', 'React', 'TypeScript', 'Node.js', 'CSS', 'HTML', 
-              'UI/UX Design', 'GraphQL', 'REST APIs', 'Git'
-            ]
-          };
-          serviceUserId = 'linkedin_123456';
+            });
+            
+            if (linkedinResponse.ok) {
+              profileData = await linkedinResponse.json();
+              serviceUserId = profileData.id;
+            } else {
+              // Fallback if API call fails
+              profileData = {
+                id: `linkedin_${Date.now()}`,
+                name: user.email?.split('@')[0] || 'LinkedIn User',
+                email: user.email
+              };
+              serviceUserId = profileData.id;
+            }
+          } catch (e) {
+            console.error('LinkedIn API error, using fallback data', e);
+            // Fallback if API call fails
+            profileData = {
+              id: `linkedin_${Date.now()}`,
+              name: user.email?.split('@')[0] || 'LinkedIn User',
+              email: user.email
+            };
+            serviceUserId = profileData.id;
+          }
         }
         
         // Save connection to database

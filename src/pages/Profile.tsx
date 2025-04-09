@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Github, Linkedin, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Github, Linkedin, Loader2, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ServiceConnection } from '@/types/portfolio';
 
@@ -201,18 +202,6 @@ const Profile = () => {
                   </div>
                 </CardContent>
               </Card>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 mr-2" />
-                  <div>
-                    <h3 className="font-medium text-yellow-800">Note on Social Connections</h3>
-                    <p className="text-sm text-yellow-700 mt-1">
-                      For this demo, the connections are simulated. In a production environment, you would need to register your application with GitHub and LinkedIn developer programs.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </div>
