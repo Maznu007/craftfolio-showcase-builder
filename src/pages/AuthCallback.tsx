@@ -6,6 +6,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
+interface GithubProfile {
+  id: string | number;
+  repos_url?: string;
+  repos?: any[];
+  [key: string]: any;
+}
+
+interface LinkedInProfile {
+  id: string | number;
+  name?: string;
+  email?: string;
+  [key: string]: any;
+}
+
+type ProfileData = GithubProfile | LinkedInProfile;
+
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -49,7 +65,7 @@ const AuthCallback = () => {
         }
         
         // Get user profile from provider
-        let profileData = {};
+        let profileData: ProfileData = {};
         let serviceUserId = '';
         
         if (provider === 'github') {
@@ -64,19 +80,21 @@ const AuthCallback = () => {
             throw new Error('Failed to fetch GitHub profile');
           }
           
-          profileData = await githubResponse.json();
-          serviceUserId = profileData.id;
+          profileData = await githubResponse.json() as GithubProfile;
+          serviceUserId = String(profileData.id);
           
           // Fetch repositories
-          const reposResponse = await fetch(`${profileData.repos_url}?sort=updated&per_page=10`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
+          if (profileData.repos_url) {
+            const reposResponse = await fetch(`${profileData.repos_url}?sort=updated&per_page=10`, {
+              headers: {
+                Authorization: `Bearer ${accessToken}`
+              }
+            });
+            
+            if (reposResponse.ok) {
+              const repos = await reposResponse.json();
+              profileData.repos = repos;
             }
-          });
-          
-          if (reposResponse.ok) {
-            const repos = await reposResponse.json();
-            profileData.repos = repos;
           }
         } else if (provider === 'linkedin') {
           // For LinkedIn, we need to use LinkedIn API with the access token
@@ -89,8 +107,8 @@ const AuthCallback = () => {
             });
             
             if (linkedinResponse.ok) {
-              profileData = await linkedinResponse.json();
-              serviceUserId = profileData.id;
+              profileData = await linkedinResponse.json() as LinkedInProfile;
+              serviceUserId = String(profileData.id);
             } else {
               // Fallback if API call fails
               profileData = {
@@ -98,7 +116,7 @@ const AuthCallback = () => {
                 name: user.email?.split('@')[0] || 'LinkedIn User',
                 email: user.email
               };
-              serviceUserId = profileData.id;
+              serviceUserId = String(profileData.id);
             }
           } catch (e) {
             console.error('LinkedIn API error, using fallback data', e);
@@ -108,7 +126,7 @@ const AuthCallback = () => {
               name: user.email?.split('@')[0] || 'LinkedIn User',
               email: user.email
             };
-            serviceUserId = profileData.id;
+            serviceUserId = String(profileData.id);
           }
         }
         
