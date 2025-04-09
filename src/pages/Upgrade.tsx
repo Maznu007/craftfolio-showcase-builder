@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Upgrade = () => {
   const { user, userType } = useAuth();
@@ -19,12 +20,36 @@ const Upgrade = () => {
     }
   }, [user, navigate]);
 
-  const handleUpgrade = () => {
-    toast({
-      title: "Subscription feature",
-      description: "Payment processing would be implemented here.",
-    });
-    // In a real application, this would redirect to a payment processor or update the subscription in the database
+  const handleUpgrade = async () => {
+    if (!user) return;
+    
+    try {
+      // Update the user type in the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ user_type: 'premium' })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Upgrade successful!",
+        description: "You are now a premium user. Enjoy all the premium features!",
+      });
+      
+      // In a real application, this would also include payment processing
+      // and would only update the subscription after successful payment
+      
+      // Refresh the page to update the UI
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error upgrading plan:', error);
+      toast({
+        variant: "destructive",
+        title: "Upgrade failed",
+        description: error.message || "Failed to upgrade your plan. Please try again.",
+      });
+    }
   };
 
   if (!user) {

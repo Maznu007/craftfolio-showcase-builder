@@ -20,7 +20,7 @@ interface LinkedInProfile {
   [key: string]: any;
 }
 
-type ProfileData = GithubProfile | LinkedInProfile;
+type ProfileData = GithubProfile | LinkedInProfile | Record<string, any>;
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();

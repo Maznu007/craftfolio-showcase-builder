@@ -26,6 +26,8 @@ const SignupForm = () => {
     try {
       console.log("Attempting signup with:", email);
       
+      // Sign up the user - we set user_type in the metadata 
+      // even though we have the profiles table as a backup
       const { error, data } = await supabase.auth.signUp({
         email,
         password,

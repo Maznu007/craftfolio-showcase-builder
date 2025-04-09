@@ -27,6 +27,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'free' | 'premium' | null>(null);
 
+  // Function to fetch user profile from the profiles table
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      if (data) {
+        setUserType(data.user_type as 'free' | 'premium');
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -35,10 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Get user type from user metadata
+        // Fetch user profile if user is logged in
         if (currentSession?.user) {
-          const userMetadata = currentSession.user.user_metadata;
-          setUserType(userMetadata?.user_type || 'free');
+          fetchUserProfile(currentSession.user.id);
         } else {
           setUserType(null);
         }
@@ -53,10 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
-      // Get user type from user metadata
+      // Fetch user profile if user is logged in
       if (currentSession?.user) {
-        const userMetadata = currentSession.user.user_metadata;
-        setUserType(userMetadata?.user_type || 'free');
+        fetchUserProfile(currentSession.user.id);
       }
       
       setLoading(false);
