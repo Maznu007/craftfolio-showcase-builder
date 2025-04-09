@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowRight, Rocket, Palette, Github, Linkedin, Globe, Sparkles } from 'lucide-react';
+import { ArrowRight, Rocket, Palette, Github, Linkedin, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Benefits = () => {
@@ -19,11 +19,6 @@ const Benefits = () => {
       icon: <Linkedin className="h-10 w-10 text-blue-700 mb-4" />,
       title: 'LinkedIn Import',
       description: 'Sync your work experience and skills from your LinkedIn profile'
-    },
-    {
-      icon: <Globe className="h-10 w-10 text-green-600 mb-4" />,
-      title: 'Custom Domain',
-      description: 'Connect your own domain for a personalized web presence'
     },
     {
       icon: <Sparkles className="h-10 w-10 text-amber-500 mb-4" />,
