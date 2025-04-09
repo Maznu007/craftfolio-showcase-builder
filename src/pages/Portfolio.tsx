@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -21,42 +22,42 @@ const TEMPLATES = [
     id: 'minimal',
     name: 'Minimal',
     description: 'Clean and simple design focusing on content',
-    previewImage: 'https://via.placeholder.com/150?text=Minimal',
+    previewImage: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: false
   },
   {
     id: 'professional',
     name: 'Professional',
     description: 'Traditional format ideal for corporate roles',
-    previewImage: 'https://via.placeholder.com/150?text=Professional',
+    previewImage: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: false
   },
   {
     id: 'creative',
     name: 'Creative',
     description: 'Colorful and dynamic layout for creative fields',
-    previewImage: 'https://via.placeholder.com/150?text=Creative',
+    previewImage: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: false
   },
   {
     id: 'premium-modern',
     name: 'Modern Premium',
     description: 'Sleek, contemporary design with advanced layout',
-    previewImage: 'https://via.placeholder.com/150?text=Premium+Modern',
+    previewImage: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: true
   },
   {
     id: 'premium-executive',
     name: 'Executive Premium',
     description: 'Elegant design for senior professionals and executives',
-    previewImage: 'https://via.placeholder.com/150?text=Premium+Executive',
+    previewImage: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: true
   },
   {
     id: 'premium-creative',
     name: 'Creative Premium',
     description: 'Bold, innovative design for creative industries',
-    previewImage: 'https://via.placeholder.com/150?text=Premium+Creative',
+    previewImage: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=300&h=200&q=80',
     isPremium: true
   }
 ];
@@ -417,11 +418,12 @@ const Portfolio = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="mb-3 aspect-video bg-gray-100 flex items-center justify-center">
+                      <div className="mb-3 aspect-video bg-gray-100 flex items-center justify-center overflow-hidden rounded-md">
                         <img 
                           src={template.previewImage} 
                           alt={`${template.name} template preview`}
-                          className="max-w-full max-h-full"
+                          className="w-full h-full object-cover"
+                          onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Template+Preview'}
                         />
                       </div>
                       <p className="text-sm text-gray-600">{template.description}</p>
