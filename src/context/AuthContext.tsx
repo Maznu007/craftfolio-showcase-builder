@@ -30,22 +30,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user profile from the profiles table
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', userId)
-        .single();
+      // Use the metadata approach as fallback until profiles table is properly set up
+      const { data: userData, error: userError } = await supabase.auth.getUser();
       
-      if (error) {
-        console.error('Error fetching user profile:', error);
+      if (userError) {
+        console.error('Error fetching user:', userError);
         return;
       }
       
-      if (data) {
-        setUserType(data.user_type as 'free' | 'premium');
+      // Check if user has premium status in metadata
+      if (userData.user?.user_metadata?.user_type) {
+        setUserType(userData.user.user_metadata.user_type as 'free' | 'premium');
+        return;
       }
+      
+      // Default to free if no user type is found
+      setUserType('free');
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
+      // Default to free if there's an error
+      setUserType('free');
     }
   };
 
