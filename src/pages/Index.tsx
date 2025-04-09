@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
-import PortfolioExamples from '@/components/PortfolioExamples';
+import ResumeTemplateShowcase from '@/components/PortfolioExamples';
 import Benefits from '@/components/Benefits';
 import PricingCards from '@/components/PricingCards';
 import FAQ from '@/components/FAQ';
@@ -60,9 +60,56 @@ const Index = () => {
               </div>
             </div>
             
-            {/* Right Side - Portfolio Examples */}
+            {/* Right Side - Resume Template Showcase */}
             <div className="flex-1 flex justify-center md:justify-end mt-10 md:mt-0">
-              <PortfolioExamples />
+              <ResumeTemplateShowcase />
+            </div>
+          </div>
+        </div>
+        
+        {/* Resume Templates Showcase Section */}
+        <div className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="handwritten text-4xl md:text-5xl font-bold mb-6">
+                Customizable resume templates<br/>for any profession.
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Here's a million design combinations. Do what you want.<br/>
+                Whether you're a nurse or engineer, your resume will always stand out.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+                  <img 
+                    src={i === 0 ? "/lovable-uploads/db5c3197-004f-4e16-b9ba-336557e2f1de.png" : `/resume-template-${i+1}.png`}
+                    alt={`Resume template ${i+1}`}
+                    className="w-full h-[300px] object-contain bg-gray-50 p-2"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold">
+                      {i === 0 ? "Professional Resume" : i === 1 ? "Creative CV" : "Modern Portfolio"}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Perfect for {i === 0 ? "corporate positions" : i === 1 ? "creative roles" : "tech industry"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <Button 
+                className="rounded-full px-8 py-6 text-lg bg-black text-white hover:bg-black/80"
+                onClick={() => navigate('/templates')}
+              >
+                View All Templates
+              </Button>
             </div>
           </div>
         </div>
