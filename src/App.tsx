@@ -14,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import Templates from "./pages/Templates";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/portfolio/create" element={<Portfolio />} />
               <Route path="/portfolio/edit/:id" element={<Portfolio />} />
               <Route path="/upgrade" element={<Upgrade />} />
+              <Route path="/templates" element={<Templates />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

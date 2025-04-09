@@ -26,6 +26,18 @@ const Navbar = () => {
     navigate('/auth', { state: { defaultTab: action } });
   };
 
+  const handleResourceAction = (action: 'templates' | 'tutorials') => {
+    if (action === 'templates') {
+      navigate('/templates');
+    } else if (action === 'tutorials') {
+      window.open('https://www.youtube.com/watch?v=jNQXAC9IVRw', '_blank');
+    }
+  };
+
+  const scrollToPricing = () => {
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="w-full bg-craftfolio-gray py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -47,29 +59,29 @@ const Navbar = () => {
             </PopoverTrigger>
             <PopoverContent className="w-56">
               <div className="grid gap-2">
-                <div className="font-medium">Resource Library</div>
-                <div className="font-medium">Templates</div>
-                <div className="font-medium">Tutorials</div>
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => handleResourceAction('templates')}
+                >
+                  Templates
+                </button>
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => handleResourceAction('tutorials')}
+                >
+                  Tutorials
+                </button>
               </div>
             </PopoverContent>
           </Popover>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center space-x-1 nav-link">
-                <DollarSign className="h-4 w-4" />
-                <span>Pricing</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56">
-              <div className="grid gap-2">
-                <div className="font-medium">Free Plan</div>
-                <div className="font-medium">Premium Plan</div>
-                <div className="font-medium">Enterprise</div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <button 
+            className="flex items-center space-x-1 nav-link"
+            onClick={scrollToPricing}
+          >
+            <DollarSign className="h-4 w-4" />
+            <span>Pricing</span>
+          </button>
 
           <button className="flex items-center space-x-1 nav-link">
             <Users className="h-4 w-4" />
