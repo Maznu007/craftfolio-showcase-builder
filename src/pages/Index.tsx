@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import PortfolioExamples from '@/components/PortfolioExamples';
-import Benefits from '@/components/Benefits';
 import PricingCards from '@/components/PricingCards';
 import FAQ from '@/components/FAQ';
 import { Button } from '@/components/ui/button';
@@ -53,7 +51,7 @@ const Index = () => {
                 <Button 
                   variant="outline" 
                   className="rounded-full px-8 py-6 text-lg border-black text-black hover:bg-gray-100"
-                  onClick={() => document.getElementById('benefits')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
                 >
                   Learn More <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -66,9 +64,6 @@ const Index = () => {
             </div>
           </div>
         </div>
-        
-        {/* Benefits Section */}
-        <Benefits />
         
         {/* Pricing Section */}
         <PricingCards />
