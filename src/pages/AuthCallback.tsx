@@ -6,26 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-// Define interfaces for the profile data
-interface GithubProfileData {
-  id: string | number;
-  login?: string;
-  name?: string;
-  email?: string;
-  repos_url?: string;
-  repos?: any[];
-  [key: string]: any;
-}
-
-interface LinkedinProfileData {
-  id: string | number;
-  name?: string;
-  email?: string;
-  [key: string]: any;
-}
-
-type ProfileData = GithubProfileData | LinkedinProfileData;
-
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -69,7 +49,7 @@ const AuthCallback = () => {
         }
         
         // Get user profile from provider
-        let profileData: ProfileData = { id: '' };
+        let profileData = {};
         let serviceUserId = '';
         
         if (provider === 'github') {
@@ -84,21 +64,19 @@ const AuthCallback = () => {
             throw new Error('Failed to fetch GitHub profile');
           }
           
-          profileData = await githubResponse.json() as GithubProfileData;
-          serviceUserId = String(profileData.id);
+          profileData = await githubResponse.json();
+          serviceUserId = profileData.id;
           
           // Fetch repositories
-          if (profileData.repos_url) {
-            const reposResponse = await fetch(`${profileData.repos_url}?sort=updated&per_page=10`, {
-              headers: {
-                Authorization: `Bearer ${accessToken}`
-              }
-            });
-            
-            if (reposResponse.ok) {
-              const repos = await reposResponse.json();
-              profileData.repos = repos;
+          const reposResponse = await fetch(`${profileData.repos_url}?sort=updated&per_page=10`, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`
             }
+          });
+          
+          if (reposResponse.ok) {
+            const repos = await reposResponse.json();
+            profileData.repos = repos;
           }
         } else if (provider === 'linkedin') {
           // For LinkedIn, we need to use LinkedIn API with the access token
@@ -111,8 +89,8 @@ const AuthCallback = () => {
             });
             
             if (linkedinResponse.ok) {
-              profileData = await linkedinResponse.json() as LinkedinProfileData;
-              serviceUserId = String(profileData.id);
+              profileData = await linkedinResponse.json();
+              serviceUserId = profileData.id;
             } else {
               // Fallback if API call fails
               profileData = {
@@ -120,7 +98,7 @@ const AuthCallback = () => {
                 name: user.email?.split('@')[0] || 'LinkedIn User',
                 email: user.email
               };
-              serviceUserId = String(profileData.id);
+              serviceUserId = profileData.id;
             }
           } catch (e) {
             console.error('LinkedIn API error, using fallback data', e);
@@ -130,7 +108,7 @@ const AuthCallback = () => {
               name: user.email?.split('@')[0] || 'LinkedIn User',
               email: user.email
             };
-            serviceUserId = String(profileData.id);
+            serviceUserId = profileData.id;
           }
         }
         
