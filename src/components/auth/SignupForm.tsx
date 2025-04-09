@@ -24,6 +24,8 @@ const SignupForm = () => {
     setLoading(true);
     
     try {
+      console.log("Attempting signup with:", email);
+      
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
@@ -35,6 +37,8 @@ const SignupForm = () => {
       });
       
       if (error) throw error;
+      
+      console.log("Signup response:", data);
       
       if (data.user) {
         toast({
@@ -49,12 +53,12 @@ const SignupForm = () => {
         });
       }
     } catch (error: any) {
+      console.error("Sign up error:", error);
       toast({
         variant: "destructive",
         title: "Error signing up",
         description: error.message,
       });
-      console.error("Sign up error:", error);
     } finally {
       setLoading(false);
     }

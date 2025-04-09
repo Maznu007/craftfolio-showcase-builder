@@ -28,6 +28,8 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
     setLoading(true);
     
     try {
+      console.log("Attempting login with:", email);
+      
       const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -35,18 +37,20 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
       
       if (error) throw error;
       
+      console.log("Login successful:", data);
+      
       toast({
         title: "Logged in successfully",
         description: `Welcome back, ${email}!`,
       });
       navigate('/portfolio/create');
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Error logging in",
         description: error.message,
       });
-      console.error("Login error:", error);
     } finally {
       setLoading(false);
     }
