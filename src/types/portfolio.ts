@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface PortfolioContent {
@@ -79,7 +80,7 @@ export function safeParsePortfolioContent(content: Json): PortfolioContent {
     return { ...defaultContent, ...content as Partial<PortfolioContent> };
   }
   
-  // Return default content if parsing fails
+  // Return default structure if parsing fails
   return {
     personalInfo: {
       fullName: '',

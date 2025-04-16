@@ -50,13 +50,23 @@ const Community = () => {
       // Fetch portfolios that are marked as public
       const { data, error } = await supabase
         .from('portfolios')
-        .select('*, profiles:user_id(*)')
+        .select(`
+          id, 
+          title, 
+          description, 
+          template_id, 
+          user_id,
+          is_public,
+          category,
+          skills,
+          profiles:profiles(display_name)
+        `)
         .eq('is_public', true);
       
       if (error) throw error;
 
       // Transform the data for our frontend needs
-      const transformedData = data.map((portfolio) => ({
+      const transformedData: Portfolio[] = data.map((portfolio) => ({
         id: portfolio.id,
         title: portfolio.title,
         description: portfolio.description,
@@ -68,7 +78,7 @@ const Community = () => {
         skills: portfolio.skills || getRandomSkills(),
         // Use real category if available, otherwise generate a placeholder
         category: portfolio.category || getRandomCategory(),
-        is_public: portfolio.is_public,
+        is_public: !!portfolio.is_public,
       }));
 
       setPortfolios(transformedData);

@@ -20,6 +20,7 @@ import PortfolioView from '@/components/portfolio/PortfolioView';
 import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 const Dashboard = () => {
   const { user, userType } = useAuth();
