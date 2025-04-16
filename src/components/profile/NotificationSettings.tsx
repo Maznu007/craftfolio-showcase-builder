@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 
-type NotificationSettings = Tables['user_notification_settings']['Row'];
+type NotificationSettings = Tables<'user_notification_settings'>;
 
 const NotificationSettings = () => {
   const { user } = useAuth();
@@ -64,9 +64,11 @@ const NotificationSettings = () => {
   };
 
   const createDefaultSettings = async () => {
+    if (!user?.id) return;
+    
     try {
-      const defaultSettings: Omit<NotificationSettings, 'id'> = {
-        user_id: user?.id || '',
+      const defaultSettings = {
+        user_id: user.id,
         in_app_notifications: true,
         email_notifications: false,
         portfolio_updates: true,
@@ -95,9 +97,7 @@ const NotificationSettings = () => {
 
       const { error } = await supabase
         .from('user_notification_settings')
-        .upsert({ 
-          ...updatedSettings
-        });
+        .upsert(updatedSettings);
 
       if (error) throw error;
 

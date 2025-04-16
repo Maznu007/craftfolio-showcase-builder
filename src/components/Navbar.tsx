@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -20,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import NotificationItem from './NotificationItem';
 import { Tables } from '@/integrations/supabase/types';
 
-export type Notification = Tables['notifications']['Row'];
+export type Notification = Tables<'notifications'>;
 
 const Navbar = () => {
   const { user, signOut, userType, refreshUserProfile } = useAuth();
