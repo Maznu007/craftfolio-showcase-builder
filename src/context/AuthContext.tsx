@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,7 +52,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (userData.user?.user_metadata?.user_type) {
-          setUserType(userData.user.user_metadata.user_type as 'free' | 'premium' | 'admin');
+          const metadataType = userData.user.user_metadata.user_type.toString().toLowerCase().trim();
+          if (metadataType === 'admin') {
+            setUserType('admin');
+          } else if (metadataType === 'premium') {
+            setUserType('premium');
+          } else {
+            setUserType('free');
+          }
           return;
         }
         
@@ -62,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Profile data retrieved:', profileData);
       
       if (profileData && profileData.user_type) {
-        const normalizedUserType = profileData.user_type.toLowerCase().trim();
+        const normalizedUserType = profileData.user_type.toString().toLowerCase().trim();
         if (normalizedUserType === 'admin') {
           setUserType('admin');
         } else if (normalizedUserType === 'premium') {

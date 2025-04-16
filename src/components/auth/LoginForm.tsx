@@ -57,7 +57,7 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
           .eq('id', data.user.id)
           .single();
         
-        if (!profileError && profileData.user_type === 'admin') {
+        if (!profileError && profileData && profileData.user_type === 'admin') {
           toast({
             title: "Logged in successfully",
             description: `Welcome back, ${email}!`,

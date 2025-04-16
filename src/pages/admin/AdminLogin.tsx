@@ -68,7 +68,7 @@ const AdminLogin = () => {
           throw new Error('Failed to verify admin status');
         }
         
-        if (profileData.user_type !== 'admin') {
+        if (!profileData || profileData.user_type !== 'admin') {
           // Sign out if not an admin
           await supabase.auth.signOut();
           
