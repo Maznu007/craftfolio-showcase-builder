@@ -41,6 +41,7 @@ const UserManagement = () => {
   const [actionUser, setActionUser] = useState<UserData | null>(null);
   const [actionType, setActionType] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -50,7 +51,7 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Get all profiles with better visibility of user_type
+      // Get all profiles with user_type and email info
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, display_name, user_type, created_at, email');
@@ -143,21 +144,56 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    // In a real app, you would implement user deletion here
-    // For now, we'll just show a toast message
-    toast({
-      title: "User deletion",
-      description: "This feature is not fully implemented yet."
-    });
+    try {
+      setIsDeleting(true);
+      
+      // Delete profile (this will cascade to other data thanks to RLS)
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state by removing the deleted user
+      setUsers(prev => prev.filter(user => user.id !== userId));
+      
+      toast({
+        title: "User deleted",
+        description: "The user has been permanently deleted."
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to delete user",
+        description: "There was a problem deleting the user."
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
-  const handleSendPasswordReset = async (userId: string) => {
-    // In a real app, you would implement password reset here
-    // For now, we'll just show a toast message
-    toast({
-      title: "Password reset",
-      description: "This feature is not fully implemented yet."
-    });
+  const handleSendPasswordReset = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "A password reset link has been sent to the user's email."
+      });
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send password reset",
+        description: "There was a problem sending the password reset email."
+      });
+    }
   };
 
   const openActionDialog = (user: UserData, action: string) => {
@@ -183,7 +219,7 @@ const UserManagement = () => {
         handleDeleteUser(actionUser.id);
         break;
       case 'reset-password':
-        handleSendPasswordReset(actionUser.id);
+        handleSendPasswordReset(actionUser.email);
         break;
       default:
         break;
@@ -447,8 +483,9 @@ const UserManagement = () => {
             <Button 
               variant={actionType === 'delete' ? 'destructive' : 'default'} 
               onClick={confirmAction}
+              disabled={isDeleting && actionType === 'delete'}
             >
-              Confirm
+              {isDeleting && actionType === 'delete' ? 'Deleting...' : 'Confirm'}
             </Button>
           </DialogFooter>
         </DialogContent>
