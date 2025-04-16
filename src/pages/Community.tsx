@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Filter, User, Tag, ArrowUpRight, Loader2 } from 'lucide-react';
+import { Search, Filter, User, Tag, ArrowUpRight, Loader2, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ type Portfolio = {
   user_id: string;
   skills: string[];
   category: string;
+  is_public: boolean;
 };
 
 const Community = () => {
@@ -43,37 +44,31 @@ const Community = () => {
     fetchPublicPortfolios();
   }, []);
 
-  useEffect(() => {
-    // Apply filters whenever search term or filters change
-    applyFilters();
-  }, [searchTerm, categoryFilter, selectedSkills]);
-
   const fetchPublicPortfolios = async () => {
     setIsLoading(true);
     try {
       // Fetch portfolios that are marked as public
-      // For now, we'll assume all portfolios in the database are public
-      // In a real implementation, you would add a 'public' boolean field to the portfolios table
       const { data, error } = await supabase
         .from('portfolios')
-        .select('*, profiles:user_id(user_type)');
+        .select('*, profiles:user_id(*)')
+        .eq('is_public', true);
       
       if (error) throw error;
 
       // Transform the data for our frontend needs
-      // In a real implementation, you would have users, categories, and skills properly stored
       const transformedData = data.map((portfolio) => ({
         id: portfolio.id,
         title: portfolio.title,
         description: portfolio.description,
         template_id: portfolio.template_id,
         user_id: portfolio.user_id,
-        // Generate a random name since we don't have real user names yet
-        user_name: `User ${portfolio.user_id.substring(0, 4)}`,
-        // Generate random skills for demonstration
-        skills: getRandomSkills(),
-        // Assign a random category for demonstration
-        category: getRandomCategory(),
+        // Use the actual user name if available, otherwise generate a placeholder
+        user_name: portfolio.profiles?.display_name || `User ${portfolio.user_id.substring(0, 4)}`,
+        // Use real skills if available, otherwise generate placeholder skills
+        skills: portfolio.skills || getRandomSkills(),
+        // Use real category if available, otherwise generate a placeholder
+        category: portfolio.category || getRandomCategory(),
+        is_public: portfolio.is_public,
       }));
 
       setPortfolios(transformedData);
@@ -137,6 +132,10 @@ const Community = () => {
     setFilteredPortfolios(filtered);
   };
 
+  const handleSearch = () => {
+    applyFilters();
+  };
+
   const handleSkillToggle = (skills: string[]) => {
     setSelectedSkills(skills);
   };
@@ -144,6 +143,18 @@ const Community = () => {
   const handleViewPortfolio = (id: string) => {
     // In a real app, this would navigate to a public view of the portfolio
     navigate(`/portfolio/view/${id}`);
+  };
+
+  // Apply filters when search term, category, or skills change
+  useEffect(() => {
+    // We don't auto-apply filters as the user types now
+    // Instead, we wait for the Search button click or Enter key
+  }, [searchTerm, categoryFilter, selectedSkills]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   return (
@@ -157,14 +168,23 @@ const Community = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Search Bar */}
             <div className="col-span-1 md:col-span-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input 
-                  placeholder="Search by name, skills, or keywords" 
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input 
+                    placeholder="Search by name, skills, or keywords" 
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                </div>
+                <Button 
+                  onClick={handleSearch}
+                  className="bg-gray-700 hover:bg-gray-800 text-white"
+                >
+                  Search
+                </Button>
               </div>
             </div>
 
@@ -219,6 +239,19 @@ const Community = () => {
               </ToggleGroup>
             </div>
           </div>
+          <div className="mt-4 flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm('');
+                setCategoryFilter('all');
+                setSelectedSkills([]);
+                setFilteredPortfolios(portfolios);
+              }}
+            >
+              Clear Filters
+            </Button>
+          </div>
         </div>
 
         {/* Results Section */}
@@ -253,6 +286,7 @@ const Community = () => {
                     setSearchTerm('');
                     setCategoryFilter('all');
                     setSelectedSkills([]);
+                    handleSearch();
                   }}
                 >
                   Clear Filters
@@ -270,12 +304,18 @@ const Community = () => {
                             <User className="h-3 w-3 mr-1" /> {portfolio.user_name}
                           </p>
                         </div>
-                        <Badge variant={
-                          portfolio.category === 'Developer' ? 'default' :
-                          portfolio.category === 'Designer' ? 'secondary' : 'outline'
-                        }>
-                          {portfolio.category}
-                        </Badge>
+                        <div className="flex gap-2">
+                          <Badge variant={
+                            portfolio.category === 'Developer' ? 'default' :
+                            portfolio.category === 'Designer' ? 'secondary' : 'outline'
+                          }>
+                            {portfolio.category}
+                          </Badge>
+                          <Badge variant="outline" className="bg-green-50">
+                            <Globe className="h-3 w-3 mr-1" />
+                            Public
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="pt-2">

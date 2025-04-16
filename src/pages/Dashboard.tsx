@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle, Globe, Link } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import PortfolioView from '@/components/portfolio/PortfolioView';
 import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Dashboard = () => {
   const { user, userType } = useAuth();
@@ -26,6 +28,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [deletePortfolioId, setDeletePortfolioId] = useState<string | null>(null);
   const [viewPortfolio, setViewPortfolio] = useState<Portfolio | null>(null);
+  const [linkCopied, setLinkCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -107,6 +110,55 @@ const Dashboard = () => {
     }
   };
 
+  const togglePublic = async (portfolioId: string, currentState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('portfolios')
+        .update({ is_public: !currentState })
+        .eq('id', portfolioId);
+
+      if (error) throw error;
+
+      // Update local state to reflect the change
+      setPortfolios(prevPortfolios => 
+        prevPortfolios.map(p => 
+          p.id === portfolioId ? { ...p, is_public: !currentState } : p
+        )
+      );
+
+      toast({
+        title: currentState ? "Portfolio is now private" : "Portfolio is now public",
+        description: currentState 
+          ? "Your portfolio is no longer visible in the community" 
+          : "Your portfolio is now visible in the community"
+      });
+    } catch (error) {
+      console.error('Error toggling portfolio visibility:', error);
+      toast({
+        variant: "destructive",
+        title: "Error updating portfolio",
+        description: "There was a problem updating your portfolio visibility."
+      });
+    }
+  };
+
+  const copyPublicLink = (portfolioId: string) => {
+    // Create a shareable link - in production this would be your actual domain
+    const link = `${window.location.origin}/portfolio/view/${portfolioId}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopied(portfolioId);
+      toast({
+        title: "Link copied!",
+        description: "Portfolio link copied to clipboard"
+      });
+      
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setLinkCopied(null);
+      }, 2000);
+    });
+  };
+
   const confirmDelete = (portfolioId: string) => {
     setDeletePortfolioId(portfolioId);
   };
@@ -157,7 +209,15 @@ const Dashboard = () => {
               {portfolios.map((portfolio) => (
                 <Card key={portfolio.id} className="overflow-hidden flex flex-col">
                   <CardHeader className="pb-3">
-                    <CardTitle className="truncate">{portfolio.title}</CardTitle>
+                    <div className="flex justify-between">
+                      <CardTitle className="truncate">{portfolio.title}</CardTitle>
+                      {portfolio.is_public && (
+                        <Badge variant="outline" className="bg-green-50">
+                          <Globe className="h-3 w-3 mr-1" />
+                          Public
+                        </Badge>
+                      )}
+                    </div>
                     <CardDescription className="truncate">
                       {portfolio.description || 'No description provided'}
                     </CardDescription>
@@ -168,6 +228,33 @@ const Dashboard = () => {
                     </div>
                     <div className="text-sm">
                       Template: <span className="font-medium capitalize">{portfolio.template_id.replace('-', ' ')}</span>
+                    </div>
+                    
+                    {/* Share to Community Toggle */}
+                    <div className="border-t mt-4 pt-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-1">
+                          <Globe className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm">Share to Community</span>
+                        </div>
+                        <Switch 
+                          checked={!!portfolio.is_public}
+                          onCheckedChange={() => togglePublic(portfolio.id, !!portfolio.is_public)}
+                        />
+                      </div>
+                      
+                      {/* Copy Link Button - Only show if portfolio is public */}
+                      {portfolio.is_public && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full mt-2"
+                          onClick={() => copyPublicLink(portfolio.id)}
+                        >
+                          <Link className="h-4 w-4 mr-1" />
+                          {linkCopied === portfolio.id ? 'Copied!' : 'Copy Public Link'}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-4 border-t">

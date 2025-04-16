@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface PortfolioContent {
@@ -33,13 +32,16 @@ export interface PortfolioContent {
 
 export interface Portfolio {
   id: string;
+  user_id: string;
   title: string;
   description: string | null;
-  template_id: string;
   content: PortfolioContent;
+  template_id: string;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  is_public?: boolean;
+  category?: string;
+  skills?: string[];
 }
 
 export interface ServiceConnection {
