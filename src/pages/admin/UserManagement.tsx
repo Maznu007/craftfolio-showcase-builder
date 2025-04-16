@@ -70,7 +70,7 @@ const UserManagement = () => {
         return;
       }
       
-      // For each profile, count portfolios
+      // For each profile, count portfolios and get additional data
       const usersWithDetails = await Promise.all(
         profiles.map(async (profile) => {
           // Get portfolio count
@@ -80,23 +80,25 @@ const UserManagement = () => {
             .eq('user_id', profile.id);
           
           if (countError) {
-            console.error('Error counting portfolios:', countError);
-            return {
-              ...profile,
-              email: profile.email || 'Unknown',
-              last_sign_in_at: null,
-              portfolio_count: 0,
-              // Ensure user_type is normalized to one of the expected values
-              user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
-                ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
-                : 'free'
-            };
+            console.error('Error counting portfolios for user', profile.id, ':', countError);
+          }
+          
+          // Get auth user data (last_sign_in_at)
+          let lastSignIn = null;
+          try {
+            // Note: We can't query auth.users directly via RPC, so we'll use the data we have
+            const { data: authData } = await supabase.auth.admin.getUserById(profile.id);
+            if (authData && authData.user) {
+              lastSignIn = authData.user.last_sign_in_at;
+            }
+          } catch (error) {
+            console.error('Error fetching auth data for user', profile.id, ':', error);
           }
           
           return {
             ...profile,
             email: profile.email || 'User ' + profile.id.substring(0, 8),
-            last_sign_in_at: null,
+            last_sign_in_at: lastSignIn,
             portfolio_count: portfolioCount || 0,
             // Ensure user_type is normalized to one of the expected values
             user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
@@ -295,7 +297,7 @@ const UserManagement = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
         
-        {/* Debug Info - Can be removed after verifying fix */}
+        {/* User Stats */}
         <div className="mb-4 p-4 bg-gray-100 rounded-md">
           <p className="text-sm text-gray-500">Total users: {users.length}</p>
           <p className="text-sm text-gray-500">Free users: {users.filter(u => u.user_type === 'free').length}</p>
@@ -347,6 +349,7 @@ const UserManagement = () => {
           </div>
         </div>
         
+        {/* User Table */}
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
