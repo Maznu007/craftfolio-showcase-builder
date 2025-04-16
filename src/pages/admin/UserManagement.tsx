@@ -27,7 +27,7 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Get all profiles with user_type and email info
+      // Get all profiles including user_type
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, display_name, user_type, created_at, email');
@@ -59,22 +59,12 @@ const UserManagement = () => {
             console.error('Error counting portfolios for user', profile.id, ':', countError);
           }
           
-          // Get auth user data (last_sign_in_at)
-          let lastSignIn = null;
-          try {
-            // Note: We can't query auth.users directly via RPC, so we'll use the data we have
-            const { data: authData } = await supabase.auth.admin.getUserById(profile.id);
-            if (authData && authData.user) {
-              lastSignIn = authData.user.last_sign_in_at;
-            }
-          } catch (error) {
-            console.error('Error fetching auth data for user', profile.id, ':', error);
-          }
-          
+          // For last sign in, we can't directly access the auth.users table with this token,
+          // so we'll just use a placeholder or null for now
           return {
             ...profile,
             email: profile.email || 'User ' + profile.id.substring(0, 8),
-            last_sign_in_at: lastSignIn,
+            last_sign_in_at: null, // We'll need admin access for this
             portfolio_count: portfolioCount || 0,
             // Ensure user_type is normalized to one of the expected values
             user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
@@ -159,6 +149,7 @@ const UserManagement = () => {
       });
     } finally {
       setIsDeleting(false);
+      setShowDialog(false);
     }
   };
 
@@ -213,7 +204,10 @@ const UserManagement = () => {
         break;
     }
     
-    setShowDialog(false);
+    if (actionType !== 'delete') { // For delete, we close in the handleDeleteUser function
+      setShowDialog(false);
+    }
+    
     setActionUser(null);
     setActionType(null);
   };
