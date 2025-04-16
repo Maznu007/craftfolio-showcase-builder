@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portfolios: {
         Row: {
           category: string | null
@@ -109,6 +136,39 @@ export type Database = {
           service_name?: string
           service_user_id?: string
           token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_notification_settings: {
+        Row: {
+          created_at: string
+          email_notifications: boolean
+          id: string
+          in_app_notifications: boolean
+          portfolio_updates: boolean
+          reminder_notifications: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          in_app_notifications?: boolean
+          portfolio_updates?: boolean
+          reminder_notifications?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications?: boolean
+          id?: string
+          in_app_notifications?: boolean
+          portfolio_updates?: boolean
+          reminder_notifications?: boolean
           updated_at?: string
           user_id?: string
         }

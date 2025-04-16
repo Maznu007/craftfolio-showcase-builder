@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -19,15 +18,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/integrations/supabase/client';
 import NotificationItem from './NotificationItem';
+import { Tables } from '@/integrations/supabase/types';
 
-export type Notification = {
-  id: string;
-  user_id: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-};
+export type Notification = Tables['notifications']['Row'];
 
 const Navbar = () => {
   const { user, signOut, userType, refreshUserProfile } = useAuth();
@@ -36,7 +29,6 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Refresh user profile when navbar mounts or route changes
   useEffect(() => {
     if (user) {
       refreshUserProfile();
@@ -58,7 +50,7 @@ const Navbar = () => {
       if (error) throw error;
       
       if (data) {
-        setNotifications(data as Notification[]);
+        setNotifications(data);
         const unread = data.filter(n => !n.is_read).length;
         setUnreadCount(unread);
       }
@@ -76,13 +68,11 @@ const Navbar = () => {
         
       if (error) throw error;
       
-      // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.map(n => 
           n.id === notificationId ? { ...n, is_read: true } : n
         )
       );
-      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -104,7 +94,6 @@ const Navbar = () => {
         
       if (error) throw error;
       
-      // Update local state
       setNotifications(prevNotifications => 
         prevNotifications.map(n => ({ ...n, is_read: true }))
       );
@@ -137,13 +126,11 @@ const Navbar = () => {
   return (
     <div className="w-full bg-craftfolio-gray py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Logo */}
         <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
           <Speaker className="h-6 w-6" />
           <span className="font-bold text-xl tracking-tight">CRAFTFOLIO</span>
         </div>
 
-        {/* Navigation Links */}
         <div className="hidden md:flex items-center space-x-8">
           <Popover>
             <PopoverTrigger asChild>
@@ -188,7 +175,6 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Auth Buttons or User Menu */}
         <div className="flex items-center space-x-4">
           {user && (
             <Popover>

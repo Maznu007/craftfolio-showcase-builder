@@ -7,21 +7,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Tables } from '@/integrations/supabase/types';
 
-interface NotificationSettings {
-  in_app_notifications: boolean;
-  email_notifications: boolean;
-  portfolio_updates: boolean;
-  reminder_notifications: boolean;
-}
+type NotificationSettings = Tables['user_notification_settings']['Row'];
 
 const NotificationSettings = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState<NotificationSettings>({
+    id: '',
+    user_id: user?.id || '',
     in_app_notifications: true,
     email_notifications: false,
     portfolio_updates: true,
-    reminder_notifications: true
+    reminder_notifications: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,7 +39,7 @@ const NotificationSettings = () => {
         .from('user_notification_settings')
         .select('*')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
@@ -65,12 +65,14 @@ const NotificationSettings = () => {
 
   const createDefaultSettings = async () => {
     try {
-      const defaultSettings = {
-        user_id: user?.id,
+      const defaultSettings: Omit<NotificationSettings, 'id'> = {
+        user_id: user?.id || '',
         in_app_notifications: true,
         email_notifications: false,
         portfolio_updates: true,
-        reminder_notifications: true
+        reminder_notifications: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase
@@ -79,7 +81,7 @@ const NotificationSettings = () => {
 
       if (error) throw error;
 
-      setSettings(defaultSettings);
+      setSettings({ ...defaultSettings, id: '' });
     } catch (error) {
       console.error('Error creating notification settings:', error);
     }
@@ -88,13 +90,12 @@ const NotificationSettings = () => {
   const updateSetting = async (key: keyof NotificationSettings, value: boolean) => {
     setSaving(true);
     try {
-      const updatedSettings = { ...settings, [key]: value };
+      const updatedSettings = { ...settings, [key]: value, updated_at: new Date().toISOString() };
       setSettings(updatedSettings);
 
       const { error } = await supabase
         .from('user_notification_settings')
         .upsert({ 
-          user_id: user?.id,
           ...updatedSettings
         });
 
