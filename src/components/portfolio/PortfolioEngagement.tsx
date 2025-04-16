@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -50,7 +49,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
         
       if (error) throw error;
       
-      // Fetch user names for each comment
       const userIds = [...new Set(data.map(comment => comment.user_id))];
       
       let userNames: Record<string, string> = {};
@@ -89,7 +87,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
 
   const fetchLikes = async () => {
     try {
-      // Get the total number of likes
       const { count, error } = await supabase
         .from('portfolio_likes')
         .select('*', { count: 'exact', head: true })
@@ -99,7 +96,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
       
       setLikeCount(count || 0);
       
-      // Check if the current user has liked this portfolio
       if (user) {
         const { data, error: userLikeError } = await supabase
           .from('portfolio_likes')
@@ -114,6 +110,11 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
       }
     } catch (error) {
       console.error('Error fetching likes:', error);
+      toast({
+        title: "Failed to load likes",
+        description: "Unable to retrieve portfolio likes.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -131,7 +132,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
       setIsSubmitting(true);
       
       if (userLiked) {
-        // Unlike the portfolio
         const { error } = await supabase
           .from('portfolio_likes')
           .delete()
@@ -148,7 +148,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
           description: "You've removed your like from this portfolio."
         });
       } else {
-        // Like the portfolio
         const { error } = await supabase
           .from('portfolio_likes')
           .insert({
@@ -156,35 +155,15 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
             user_id: user.id
           });
           
-        if (error) {
-          // Handle error but still update UI if it's just a notification error
-          console.error('Error toggling like:', error);
-          
-          // Check if it's a notification error (contains "null value in column")
-          if (error.message && error.message.includes("null value in column")) {
-            // The like was likely added but notification failed
-            // Update local state anyway
-            setLikeCount(prev => prev + 1);
-            setUserLiked(true);
-            
-            toast({
-              title: "Portfolio liked",
-              description: "You've liked this portfolio!"
-            });
-          } else {
-            // It's a different error, show error message
-            throw error;
-          }
-        } else {
-          // No error, update UI
-          setLikeCount(prev => prev + 1);
-          setUserLiked(true);
-          
-          toast({
-            title: "Portfolio liked",
-            description: "You've liked this portfolio!"
-          });
-        }
+        if (error) throw error;
+        
+        setLikeCount(prev => prev + 1);
+        setUserLiked(true);
+        
+        toast({
+          title: "Portfolio liked",
+          description: "You've liked this portfolio!"
+        });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -219,27 +198,8 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
         .select('*')
         .single();
         
-      if (error) {
-        // Check if it's a notification error (contains "null value in column")
-        if (error.message && error.message.includes("null value in column")) {
-          // The comment was likely added but notification failed
-          // Let's fetch the latest comments to update our local state
-          await fetchComments();
-          
-          // Still consider this a success since the comment was added
-          toast({
-            title: "Comment posted",
-            description: "Your comment has been added successfully."
-          });
-          
-          return; // Exit function with success
-        }
-        
-        // It's a different error, show error message
-        throw error;
-      }
+      if (error) throw error;
       
-      // Add the new comment to the list with the user's name
       const newComment: PortfolioComment = {
         ...data,
         user_name: user.email?.split('@')[0] || `User ${user.id.substring(0, 4)}`
@@ -247,9 +207,17 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
       
       setComments(prev => [newComment, ...prev]);
       
+      toast({
+        title: "Comment posted",
+        description: "Your comment has been added successfully."
+      });
     } catch (error) {
       console.error('Error adding comment:', error);
-      throw error; // Re-throw to be handled by the form
+      toast({
+        title: "Failed to post comment",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -262,7 +230,6 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
         
       if (error) throw error;
       
-      // Remove the comment from the list
       setComments(prev => prev.filter(comment => comment.id !== commentId));
       
       toast({
