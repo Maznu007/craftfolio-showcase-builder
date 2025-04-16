@@ -50,13 +50,14 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Get users from auth.users - we can't query this directly with RLS
-      // Instead we'll query the profiles table
+      // Get all profiles with better visibility of user_type
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, display_name, user_type, created_at');
+        .select('id, display_name, user_type, created_at, email');
       
       if (profilesError) throw profilesError;
+      
+      console.log('Fetched profiles:', profiles);
       
       // For each profile, count portfolios
       const usersWithDetails = await Promise.all(
@@ -71,23 +72,30 @@ const UserManagement = () => {
             console.error('Error counting portfolios:', countError);
             return {
               ...profile,
-              email: 'Unknown',  // We don't have direct access to email
+              email: profile.email || 'Unknown',
               last_sign_in_at: null,
               portfolio_count: 0,
-              user_type: profile.user_type as 'free' | 'premium' | 'admin'
+              // Ensure user_type is normalized to one of the expected values
+              user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
+                ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
+                : 'free'
             };
           }
           
           return {
             ...profile,
-            email: 'User ' + profile.id.substring(0, 8),  // Anonymized for display
-            last_sign_in_at: null,  // We don't have this data from profiles
+            email: profile.email || 'User ' + profile.id.substring(0, 8),
+            last_sign_in_at: null,
             portfolio_count: portfolioCount || 0,
-            user_type: profile.user_type as 'free' | 'premium' | 'admin'
+            // Ensure user_type is normalized to one of the expected values
+            user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
+              ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
+              : 'free'
           };
         })
       );
       
+      console.log('Processed users:', usersWithDetails);
       setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -240,6 +248,14 @@ const UserManagement = () => {
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">User Management</h1>
+        
+        {/* Debug Info - Can be removed after verifying fix */}
+        <div className="mb-4 p-4 bg-gray-100 rounded-md">
+          <p className="text-sm text-gray-500">Total users: {users.length}</p>
+          <p className="text-sm text-gray-500">Free users: {users.filter(u => u.user_type === 'free').length}</p>
+          <p className="text-sm text-gray-500">Premium users: {users.filter(u => u.user_type === 'premium').length}</p>
+          <p className="text-sm text-gray-500">Admin users: {users.filter(u => u.user_type === 'admin').length}</p>
+        </div>
         
         {/* Filters and Search */}
         <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
