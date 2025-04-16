@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Filter, User, Tag, ArrowUpRight, Loader2, Globe } from 'lucide-react';
+import { Search, Filter, User, Tag, ArrowUpRight, Loader2, Globe, ThumbsUp, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,14 +14,20 @@ import Navbar from '@/components/Navbar';
 import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 import { useToast } from '@/hooks/use-toast';
 import PortfolioView from '@/components/portfolio/PortfolioView';
+import { useAuth } from '@/context/AuthContext';
 
 type PortfolioWithUserName = Portfolio & {
   user_name: string;
+  like_count: number;
+  comment_count: number;
 };
 
 const Community = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+  
   const [portfolios, setPortfolios] = useState<PortfolioWithUserName[]>([]);
   const [filteredPortfolios, setFilteredPortfolios] = useState<PortfolioWithUserName[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,7 +45,66 @@ const Community = () => {
 
   useEffect(() => {
     fetchPublicPortfolios();
-  }, []);
+    
+    // Check for portfolio ID in URL query params
+    const params = new URLSearchParams(location.search);
+    const portfolioId = params.get('portfolio');
+    
+    if (portfolioId) {
+      fetchPortfolioById(portfolioId);
+    }
+  }, [location.search]);
+
+  const fetchPortfolioById = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select(`
+          id, 
+          title, 
+          description, 
+          template_id, 
+          user_id,
+          is_public,
+          category,
+          skills,
+          content,
+          created_at,
+          updated_at
+        `)
+        .eq('id', id)
+        .eq('is_public', true)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching portfolio:', error);
+        toast({
+          title: "Portfolio not found",
+          description: "The portfolio you're looking for doesn't exist or is not public.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (data) {
+        const transformedPortfolio: Portfolio = {
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          template_id: data.template_id,
+          user_id: data.user_id,
+          content: safeParsePortfolioContent(data.content),
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          is_public: !!data.is_public,
+        };
+        
+        setViewPortfolio(transformedPortfolio);
+      }
+    } catch (err) {
+      console.error('Error fetching portfolio by ID:', err);
+    }
+  };
 
   const fetchPublicPortfolios = async () => {
     setIsLoading(true);
@@ -93,6 +159,35 @@ const Community = () => {
         }
       }
       
+      // Get like counts for each portfolio
+      const portfolioIds = (data || []).map((portfolio: any) => portfolio.id);
+      let likeCounts: Record<string, number> = {};
+      let commentCounts: Record<string, number> = {};
+      
+      if (portfolioIds.length > 0) {
+        // Get like counts
+        for (const portfolioId of portfolioIds) {
+          const { count: likeCount, error: likeError } = await supabase
+            .from('portfolio_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('portfolio_id', portfolioId);
+            
+          if (!likeError) {
+            likeCounts[portfolioId] = likeCount || 0;
+          }
+          
+          // Get comment counts
+          const { count: commentCount, error: commentError } = await supabase
+            .from('portfolio_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('portfolio_id', portfolioId);
+            
+          if (!commentError) {
+            commentCounts[portfolioId] = commentCount || 0;
+          }
+        }
+      }
+      
       // Transform the data for our frontend needs
       const transformedData: PortfolioWithUserName[] = (data || []).map((portfolio: any) => ({
         id: portfolio.id,
@@ -110,6 +205,9 @@ const Community = () => {
         // Use real category if available, otherwise generate a placeholder
         category: portfolio.category || getRandomCategory(),
         is_public: !!portfolio.is_public,
+        // Add engagement counts
+        like_count: likeCounts[portfolio.id] || 0,
+        comment_count: commentCounts[portfolio.id] || 0,
       }));
 
       setPortfolios(transformedData);
@@ -190,14 +288,22 @@ const Community = () => {
   };
 
   const handleViewPortfolio = (portfolio: PortfolioWithUserName) => {
-    // Instead of navigating, we'll show the portfolio in a modal view
+    // Update the URL with the portfolio ID for sharing
+    const url = new URL(window.location.href);
+    url.searchParams.set('portfolio', portfolio.id);
+    window.history.pushState({}, '', url.toString());
+    
+    // Show the portfolio in a modal view
     setViewPortfolio(portfolio);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+  const handleClosePortfolio = () => {
+    // Remove the portfolio ID from the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('portfolio');
+    window.history.pushState({}, '', url.toString());
+    
+    setViewPortfolio(null);
   };
 
   return (
@@ -373,6 +479,23 @@ const Community = () => {
                           </Badge>
                         ))}
                       </div>
+                      
+                      {/* Add engagement indicators */}
+                      <div className="flex gap-3 mt-3 text-xs text-gray-500">
+                        {portfolio.like_count > 0 && (
+                          <div className="flex items-center gap-1">
+                            <ThumbsUp className="h-3 w-3" />
+                            <span>{portfolio.like_count}</span>
+                          </div>
+                        )}
+                        
+                        {portfolio.comment_count > 0 && (
+                          <div className="flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            <span>{portfolio.comment_count}</span>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                     <CardFooter className="pt-0">
                       <Button 
@@ -397,7 +520,7 @@ const Community = () => {
       {viewPortfolio && (
         <PortfolioView 
           portfolio={viewPortfolio} 
-          onClose={() => setViewPortfolio(null)} 
+          onClose={handleClosePortfolio} 
         />
       )}
     </>

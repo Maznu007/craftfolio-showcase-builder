@@ -1,11 +1,12 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, X, ExternalLink, Github, Briefcase, GraduationCap, Award, Languages, Code, Heart, Sparkles, Crown } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { Portfolio } from '@/types/portfolio';
+import PortfolioEngagement from './PortfolioEngagement';
 
 interface PortfolioViewProps {
   portfolio: Portfolio;
@@ -405,6 +406,11 @@ const PortfolioView: React.FC<PortfolioViewProps> = ({ portfolio, onClose }) => 
             )}
           </div>
         </CardContent>
+        
+        {/* Add the portfolio engagement section */}
+        <div className="px-6">
+          <PortfolioEngagement portfolio={portfolio} />
+        </div>
         
         <CardFooter className={`border-t p-4 flex justify-between ${
           currentTemplate === 'premium-modern' ? 'bg-gradient-to-r from-indigo-50 to-purple-50' :
