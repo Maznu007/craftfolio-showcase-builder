@@ -113,10 +113,12 @@ const Dashboard = () => {
 
   const togglePublic = async (portfolioId: string, currentState: boolean) => {
     try {
+      const newState = !currentState;
+      
       const { error } = await supabase
         .from('portfolios')
         .update({ 
-          is_public: !currentState 
+          is_public: newState 
         })
         .eq('id', portfolioId);
 
@@ -125,7 +127,7 @@ const Dashboard = () => {
       // Update local state to reflect the change
       setPortfolios(prevPortfolios => 
         prevPortfolios.map(p => 
-          p.id === portfolioId ? { ...p, is_public: !currentState } : p
+          p.id === portfolioId ? { ...p, is_public: newState } : p
         )
       );
 

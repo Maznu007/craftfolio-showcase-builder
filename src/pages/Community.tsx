@@ -39,7 +39,10 @@ const Community = () => {
 
   const fetchPublicPortfolios = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      console.log('Fetching public portfolios...');
       // Fetch portfolios that are marked as public
       const { data, error } = await supabase
         .from('portfolios')
@@ -59,10 +62,15 @@ const Community = () => {
         `)
         .eq('is_public', true);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching portfolios:', error);
+        throw error;
+      }
 
+      console.log('Fetched portfolios:', data);
+      
       // Transform the data for our frontend needs
-      const transformedData: PortfolioWithUserName[] = data.map((portfolio: any) => ({
+      const transformedData: PortfolioWithUserName[] = (data || []).map((portfolio: any) => ({
         id: portfolio.id,
         title: portfolio.title,
         description: portfolio.description,
