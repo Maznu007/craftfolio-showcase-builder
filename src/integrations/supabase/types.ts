@@ -146,6 +146,7 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          email: string | null
           id: string
           updated_at: string
           user_type: string
@@ -153,6 +154,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id: string
           updated_at?: string
           user_type?: string
@@ -160,6 +162,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string | null
+          email?: string | null
           id?: string
           updated_at?: string
           user_type?: string
@@ -256,6 +259,14 @@ export type Database = {
         Returns: {
           count: number
         }[]
+      }
+      is_admin: {
+        Args: { check_user_id: string }
+        Returns: boolean
+      }
+      update_profiles_with_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_user_role: {
         Args: { user_id: string; new_role: string }
