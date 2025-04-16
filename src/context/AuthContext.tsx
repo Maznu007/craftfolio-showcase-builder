@@ -67,7 +67,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Set user type from profiles table
       if (profileData && profileData.user_type) {
-        setUserType(profileData.user_type as 'free' | 'premium' | 'admin');
+        // Ensure the user_type is properly formatted as one of our expected types
+        const normalizedUserType = profileData.user_type.toLowerCase().trim();
+        if (normalizedUserType === 'admin') {
+          setUserType('admin');
+        } else if (normalizedUserType === 'premium') {
+          setUserType('premium');
+        } else {
+          setUserType('free');
+        }
       } else {
         setUserType('free');
       }

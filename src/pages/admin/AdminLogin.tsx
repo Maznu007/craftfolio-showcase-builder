@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const AdminLogin = () => {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, loading, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,11 +18,20 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // Redirect if already logged in as admin
-    if (!loading && user && userType === 'admin') {
-      navigate('/admin/dashboard');
-    }
-  }, [user, loading, userType, navigate]);
+    const checkAdminStatus = async () => {
+      // Refresh user profile to get the latest status
+      if (user) {
+        await refreshUserProfile();
+      }
+      
+      // Redirect if already logged in as admin
+      if (!loading && user && userType === 'admin') {
+        navigate('/admin/dashboard');
+      }
+    };
+    
+    checkAdminStatus();
+  }, [user, loading, userType, navigate, refreshUserProfile]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -41,16 +50,38 @@ const AdminLogin = () => {
       
       if (error) throw error;
       
-      // Check if the user is an admin
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', data.user.id)
-        .single();
+      // Verify admin status using RPC function
+      const { data: isAdmin, error: adminCheckError } = await supabase
+        .rpc('is_admin', { check_user_id: data.user.id });
       
-      if (profileError) throw new Error('Failed to verify admin status');
-      
-      if (profileData.user_type !== 'admin') {
+      if (adminCheckError) {
+        console.error("Error checking admin status:", adminCheckError);
+        
+        // Fallback to profile check
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileError) {
+          throw new Error('Failed to verify admin status');
+        }
+        
+        if (profileData.user_type !== 'admin') {
+          // Sign out if not an admin
+          await supabase.auth.signOut();
+          
+          toast({
+            variant: "destructive",
+            title: "Access denied",
+            description: "This area is restricted to administrators only."
+          });
+          
+          setLoginLoading(false);
+          return;
+        }
+      } else if (!isAdmin) {
         // Sign out if not an admin
         await supabase.auth.signOut();
         
@@ -60,8 +91,12 @@ const AdminLogin = () => {
           description: "This area is restricted to administrators only."
         });
         
+        setLoginLoading(false);
         return;
       }
+      
+      // Refresh the user profile to update the userType in context
+      await refreshUserProfile();
       
       // Success - redirect to admin dashboard
       toast({

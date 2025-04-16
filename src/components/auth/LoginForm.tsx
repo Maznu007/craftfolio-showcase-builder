@@ -44,20 +44,33 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
       // Refresh user profile to get user type
       await refreshUserProfile();
       
-      // Get user type to determine redirect
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', data.user.id)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching user profile:", profileError);
+      // Check if user is admin using the is_admin function
+      const { data: isAdmin, error: adminCheckError } = await supabase
+        .rpc('is_admin', { check_user_id: data.user.id });
+        
+      if (adminCheckError) {
+        console.error("Error checking admin status:", adminCheckError);
+        // Fallback to profile check if RPC fails
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (!profileError && profileData.user_type === 'admin') {
+          toast({
+            title: "Logged in successfully",
+            description: `Welcome back, ${email}!`,
+          });
+          navigate('/admin/dashboard');
+          return;
+        }
+      } else if (isAdmin) {
         toast({
           title: "Logged in successfully",
           description: `Welcome back, ${email}!`,
         });
-        navigate('/portfolio/create');
+        navigate('/admin/dashboard');
         return;
       }
       
@@ -66,12 +79,8 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
         description: `Welcome back, ${email}!`,
       });
       
-      // Redirect based on user role
-      if (profileData.user_type === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/portfolio/create');
-      }
+      // Redirect to portfolio creation if not admin
+      navigate('/portfolio/create');
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
