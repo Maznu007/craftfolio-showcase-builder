@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
-  User, UserCog, ShieldAlert, Shield, ShieldCheck, 
+  User, ShieldCheck, 
   ArrowUpRight, ArrowDownRight, Trash2, MailPlus, Search, Crown
 } from 'lucide-react';
 import {
@@ -55,9 +56,19 @@ const UserManagement = () => {
         .from('profiles')
         .select('id, display_name, user_type, created_at, email');
       
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
       
       console.log('Fetched profiles:', profiles);
+      
+      if (!profiles || profiles.length === 0) {
+        console.log('No profiles found!');
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
       
       // For each profile, count portfolios
       const usersWithDetails = await Promise.all(
