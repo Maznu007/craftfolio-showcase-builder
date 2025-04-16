@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Navbar from '@/components/Navbar';
-import { Portfolio } from '@/types/portfolio';
+import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 
 type PortfolioWithUserName = Portfolio & {
   user_name: string;
@@ -51,6 +52,9 @@ const Community = () => {
           is_public,
           category,
           skills,
+          content,
+          created_at,
+          updated_at,
           profiles(display_name)
         `)
         .eq('is_public', true);
@@ -64,6 +68,9 @@ const Community = () => {
         description: portfolio.description,
         template_id: portfolio.template_id,
         user_id: portfolio.user_id,
+        content: safeParsePortfolioContent(portfolio.content),
+        created_at: portfolio.created_at,
+        updated_at: portfolio.updated_at,
         // Use the actual user name if available, otherwise generate a placeholder
         user_name: portfolio.profiles?.display_name || `User ${portfolio.user_id.substring(0, 4)}`,
         // Use real skills if available, otherwise generate placeholder skills
