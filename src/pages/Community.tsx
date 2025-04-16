@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Navbar from '@/components/Navbar';
 import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 import { useToast } from '@/hooks/use-toast';
+import PortfolioView from '@/components/portfolio/PortfolioView';
 
 type PortfolioWithUserName = Portfolio & {
   user_name: string;
@@ -28,6 +28,7 @@ const Community = () => {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewPortfolio, setViewPortfolio] = useState<Portfolio | null>(null);
 
   // Common skills for filtering
   const commonSkills = [
@@ -188,16 +189,10 @@ const Community = () => {
     setSelectedSkills(skills);
   };
 
-  const handleViewPortfolio = (id: string) => {
-    // In a real app, this would navigate to a public view of the portfolio
-    navigate(`/portfolio/view/${id}`);
+  const handleViewPortfolio = (portfolio: PortfolioWithUserName) => {
+    // Instead of navigating, we'll show the portfolio in a modal view
+    setViewPortfolio(portfolio);
   };
-
-  // Apply filters when search term, category, or skills change
-  useEffect(() => {
-    // We don't auto-apply filters as the user types now
-    // Instead, we wait for the Search button click or Enter key
-  }, [searchTerm, categoryFilter, selectedSkills]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -384,7 +379,7 @@ const Community = () => {
                         variant="outline" 
                         size="sm" 
                         className="w-full"
-                        onClick={() => handleViewPortfolio(portfolio.id)}
+                        onClick={() => handleViewPortfolio(portfolio)}
                       >
                         View Portfolio
                         <ArrowUpRight className="ml-1 h-4 w-4" />
@@ -397,6 +392,14 @@ const Community = () => {
           </>
         )}
       </div>
+
+      {/* Portfolio View Modal */}
+      {viewPortfolio && (
+        <PortfolioView 
+          portfolio={viewPortfolio} 
+          onClose={() => setViewPortfolio(null)} 
+        />
+      )}
     </>
   );
 };
