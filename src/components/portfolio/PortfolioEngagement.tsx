@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { Portfolio } from '@/types/portfolio';
 import CommentForm from './CommentForm';
-import PortfolioComment from './PortfolioComment';
+import PortfolioCommentItem from './PortfolioComment';
 
 type PortfolioComment = Tables<'portfolio_comments'> & {
   user_name?: string;
@@ -345,7 +345,7 @@ const PortfolioEngagement: React.FC<PortfolioEngagementProps> = ({ portfolio }) 
             ) : (
               <div className="space-y-1">
                 {comments.map(comment => (
-                  <PortfolioComment 
+                  <PortfolioCommentItem 
                     key={comment.id} 
                     comment={comment} 
                     onDelete={handleDeleteComment} 

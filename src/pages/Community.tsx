@@ -283,6 +283,13 @@ const Community = () => {
     applyFilters();
   };
 
+  // Add the missing handleKeyDown function
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   const handleSkillToggle = (skills: string[]) => {
     setSelectedSkills(skills);
   };
