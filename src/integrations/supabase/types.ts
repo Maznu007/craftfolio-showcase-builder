@@ -11,30 +11,39 @@ export type Database = {
     Tables: {
       portfolios: {
         Row: {
+          category: string | null
           content: Json
           created_at: string
           description: string | null
           id: string
+          is_public: boolean | null
+          skills: string[] | null
           template_id: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          category?: string | null
           content?: Json
           created_at?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          skills?: string[] | null
           template_id: string
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          category?: string | null
           content?: Json
           created_at?: string
           description?: string | null
           id?: string
+          is_public?: boolean | null
+          skills?: string[] | null
           template_id?: string
           title?: string
           updated_at?: string
@@ -45,18 +54,21 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           id: string
           updated_at: string
           user_type: string
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           id: string
           updated_at?: string
           user_type?: string
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           id?: string
           updated_at?: string
           user_type?: string

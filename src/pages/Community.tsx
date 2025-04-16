@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,23 +10,16 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Navbar from '@/components/Navbar';
+import { Portfolio } from '@/types/portfolio';
 
-type Portfolio = {
-  id: string;
-  title: string;
-  description: string | null;
-  template_id: string;
+type PortfolioWithUserName = Portfolio & {
   user_name: string;
-  user_id: string;
-  skills: string[];
-  category: string;
-  is_public: boolean;
 };
 
 const Community = () => {
   const navigate = useNavigate();
-  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [filteredPortfolios, setFilteredPortfolios] = useState<Portfolio[]>([]);
+  const [portfolios, setPortfolios] = useState<PortfolioWithUserName[]>([]);
+  const [filteredPortfolios, setFilteredPortfolios] = useState<PortfolioWithUserName[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -59,14 +51,14 @@ const Community = () => {
           is_public,
           category,
           skills,
-          profiles:profiles(display_name)
+          profiles(display_name)
         `)
         .eq('is_public', true);
       
       if (error) throw error;
 
       // Transform the data for our frontend needs
-      const transformedData: Portfolio[] = data.map((portfolio) => ({
+      const transformedData: PortfolioWithUserName[] = data.map((portfolio: any) => ({
         id: portfolio.id,
         title: portfolio.title,
         description: portfolio.description,

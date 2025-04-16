@@ -115,7 +115,9 @@ const Dashboard = () => {
     try {
       const { error } = await supabase
         .from('portfolios')
-        .update({ is_public: !currentState })
+        .update({ 
+          is_public: !currentState 
+        })
         .eq('id', portfolioId);
 
       if (error) throw error;
