@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot } from 'lucide-react';
+import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
@@ -256,6 +256,12 @@ const Navbar = () => {
                 {userType === 'free' && (
                   <DropdownMenuItem onSelect={() => navigate('/upgrade')}>
                     Upgrade to Premium
+                  </DropdownMenuItem>
+                )}
+                {userType === 'admin' && (
+                  <DropdownMenuItem onSelect={() => navigate('/admin/dashboard')}>
+                    <ShieldCheck className="h-4 w-4 mr-2 text-blue-500" />
+                    Admin Dashboard
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />

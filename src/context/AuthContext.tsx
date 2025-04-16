@@ -7,7 +7,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  userType: 'free' | 'premium' | null;
+  userType: 'free' | 'premium' | 'admin' | null;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 };
@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userType, setUserType] = useState<'free' | 'premium' | null>(null);
+  const [userType, setUserType] = useState<'free' | 'premium' | 'admin' | null>(null);
 
   // Function to fetch user profile from the profiles table
   const fetchUserProfile = async (userId: string) => {
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Check if user has premium status in metadata
         if (userData.user?.user_metadata?.user_type) {
-          setUserType(userData.user.user_metadata.user_type as 'free' | 'premium');
+          setUserType(userData.user.user_metadata.user_type as 'free' | 'premium' | 'admin');
           return;
         }
         
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Set user type from profiles table
       if (profileData && profileData.user_type) {
-        setUserType(profileData.user_type as 'free' | 'premium');
+        setUserType(profileData.user_type as 'free' | 'premium' | 'admin');
       } else {
         setUserType('free');
       }

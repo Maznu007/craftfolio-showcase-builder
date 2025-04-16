@@ -17,6 +17,13 @@ import ResetPassword from "./pages/ResetPassword";
 import Templates from "./pages/Templates";
 import Community from "./pages/Community";
 
+// Admin Routes
+import Admin from "./pages/admin/Admin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import PortfolioManagement from "./pages/admin/PortfolioManagement";
+import ReportedContent from "./pages/admin/ReportedContent";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -40,6 +47,14 @@ const App = () => {
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/templates" element={<Templates />} />
               <Route path="/community" element={<Community />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/portfolios" element={<PortfolioManagement />} />
+              <Route path="/admin/reports" element={<ReportedContent />} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

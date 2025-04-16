@@ -240,10 +240,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dashboard_metrics: {
+        Row: {
+          admin_users: number | null
+          premium_users: number | null
+          public_portfolios: number | null
+          total_users: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_active_users_last_7_days: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          count: number
+        }[]
+      }
+      update_user_role: {
+        Args: { user_id: string; new_role: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
