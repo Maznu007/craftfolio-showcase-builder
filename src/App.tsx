@@ -15,6 +15,7 @@ import Upgrade from "./pages/Upgrade";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Templates from "./pages/Templates";
+import Community from "./pages/Community";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => {
               <Route path="/portfolio/edit/:id" element={<Portfolio />} />
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/templates" element={<Templates />} />
+              <Route path="/community" element={<Community />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

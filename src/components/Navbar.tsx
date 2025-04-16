@@ -95,7 +95,10 @@ const Navbar = () => {
             <span>Pricing</span>
           </button>
 
-          <button className="flex items-center space-x-1 nav-link">
+          <button 
+            className="flex items-center space-x-1 nav-link cursor-pointer"
+            onClick={() => navigate('/community')}
+          >
             <Users className="h-4 w-4" />
             <span>Community</span>
           </button>
