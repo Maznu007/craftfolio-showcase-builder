@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Navbar from '@/components/Navbar';
 import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
+import { useToast } from '@/hooks/use-toast';
 
 type PortfolioWithUserName = Portfolio & {
   user_name: string;
@@ -19,6 +20,7 @@ type PortfolioWithUserName = Portfolio & {
 
 const Community = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [portfolios, setPortfolios] = useState<PortfolioWithUserName[]>([]);
   const [filteredPortfolios, setFilteredPortfolios] = useState<PortfolioWithUserName[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,8 +59,7 @@ const Community = () => {
           skills,
           content,
           created_at,
-          updated_at,
-          profiles(display_name)
+          updated_at
         `)
         .eq('is_public', true);
       
@@ -68,6 +69,28 @@ const Community = () => {
       }
 
       console.log('Fetched portfolios:', data);
+      
+      // Since we can't join with profiles directly, we'll get profiles separately
+      // and match them up afterward
+      const userIds = [...new Set((data || []).map((portfolio: any) => portfolio.user_id))];
+      
+      let userNames: Record<string, string> = {};
+      
+      // Only try to fetch profiles if we have portfolios
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', userIds);
+          
+        if (!profilesError && profilesData) {
+          // Create a lookup object for user names
+          userNames = profilesData.reduce((acc: Record<string, string>, profile: any) => {
+            acc[profile.id] = profile.display_name || `User ${profile.id.substring(0, 4)}`;
+            return acc;
+          }, {});
+        }
+      }
       
       // Transform the data for our frontend needs
       const transformedData: PortfolioWithUserName[] = (data || []).map((portfolio: any) => ({
@@ -80,7 +103,7 @@ const Community = () => {
         created_at: portfolio.created_at,
         updated_at: portfolio.updated_at,
         // Use the actual user name if available, otherwise generate a placeholder
-        user_name: portfolio.profiles?.display_name || `User ${portfolio.user_id.substring(0, 4)}`,
+        user_name: userNames[portfolio.user_id] || `User ${portfolio.user_id.substring(0, 4)}`,
         // Use real skills if available, otherwise generate placeholder skills
         skills: portfolio.skills || getRandomSkills(),
         // Use real category if available, otherwise generate a placeholder
@@ -90,6 +113,14 @@ const Community = () => {
 
       setPortfolios(transformedData);
       setFilteredPortfolios(transformedData);
+      
+      // Show toast when portfolios are successfully loaded
+      if (transformedData.length > 0) {
+        toast({
+          title: "Portfolios loaded",
+          description: `Found ${transformedData.length} public portfolio${transformedData.length === 1 ? '' : 's'}`,
+        });
+      }
     } catch (err) {
       console.error('Error fetching portfolios:', err);
       setError('Failed to load portfolios. Please try again later.');
