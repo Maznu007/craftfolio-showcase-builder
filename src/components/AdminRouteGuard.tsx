@@ -20,7 +20,7 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           description: "Please log in to access this page",
           variant: "destructive",
         });
-        navigate('/auth');
+        navigate('/admin/login');
         return;
       }
 

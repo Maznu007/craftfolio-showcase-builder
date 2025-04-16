@@ -1,19 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { 
-  Table, TableHeader, TableBody, TableRow, 
-  TableHead, TableCell 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
-  Eye, Trash2, Search, MessageSquare, Heart,
-  FileText, Star, StarOff, UserX, Clock, Calendar
-} from 'lucide-react';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +25,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from '@/components/ui/badge';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Eye, MoreHorizontal, EyeOff, Trash2, ExternalLink, AlertTriangle, Search, Filter } from 'lucide-react';
 
 interface Portfolio {
   id: string;
@@ -33,22 +39,19 @@ interface Portfolio {
   updated_at: string;
   is_public: boolean;
   category: string | null;
-  template_id: string;
-  display_name: string | null;
-  like_count: number;
-  comment_count: number;
-  is_featured: boolean;
+  profileData?: {
+    display_name: string | null;
+  };
 }
 
 const PortfolioManagement = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string | null>(null);
-  const [actionPortfolio, setActionPortfolio] = useState<Portfolio | null>(null);
-  const [actionType, setActionType] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
-  const navigate = useNavigate();
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<boolean | null>(null);
+  const [deletePortfolioId, setDeletePortfolioId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     fetchPortfolios();
@@ -57,198 +60,150 @@ const PortfolioManagement = () => {
   const fetchPortfolios = async () => {
     try {
       setLoading(true);
-      
-      // Fetch public portfolios with join to get creator name
       const { data, error } = await supabase
         .from('portfolios')
         .select(`
-          *,
-          profiles:user_id (display_name),
-          like_count:portfolio_likes (count),
-          comment_count:portfolio_comments (count)
+          id, 
+          title, 
+          description, 
+          user_id, 
+          created_at, 
+          updated_at, 
+          is_public, 
+          category
         `)
-        .eq('is_public', true)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      
-      // Transform the data to flatten the structure
-      const transformedData = data.map(portfolio => ({
-        ...portfolio,
-        display_name: portfolio.profiles?.display_name || null,
-        like_count: portfolio.like_count?.length || 0,
-        comment_count: portfolio.comment_count?.length || 0,
-        is_featured: false // We'll add this field for demo purposes
-      }));
-      
-      setPortfolios(transformedData);
+
+      // Fetch user display names
+      const portfoliosWithUsers = await Promise.all(
+        data.map(async (portfolio) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', portfolio.user_id)
+            .single();
+
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            return {
+              ...portfolio,
+              profileData: { display_name: 'Unknown User' }
+            };
+          }
+
+          return {
+            ...portfolio,
+            profileData
+          };
+        })
+      );
+
+      setPortfolios(portfoliosWithUsers);
     } catch (error) {
       console.error('Error fetching portfolios:', error);
       toast({
         variant: "destructive",
         title: "Failed to load portfolios",
-        description: "There was a problem fetching portfolio data."
+        description: "There was a problem fetching portfolio data.",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleHidePortfolio = async (portfolioId: string) => {
+  const handleVisibilityToggle = async (id: string, currentStatus: boolean) => {
     try {
-      // Update the portfolio to be private
       const { error } = await supabase
         .from('portfolios')
-        .update({ is_public: false })
-        .eq('id', portfolioId);
-      
+        .update({ is_public: !currentStatus })
+        .eq('id', id);
+
       if (error) throw error;
-      
+
       // Update local state
-      setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
-      
+      setPortfolios(prev =>
+        prev.map(p =>
+          p.id === id ? { ...p, is_public: !currentStatus } : p
+        )
+      );
+
       toast({
-        title: "Portfolio hidden",
-        description: "The portfolio has been hidden from the community"
+        title: `Portfolio ${currentStatus ? 'hidden' : 'made public'}`,
+        description: `The portfolio has been ${currentStatus ? 'hidden from' : 'made visible to'} the community.`,
       });
+
     } catch (error) {
-      console.error('Error hiding portfolio:', error);
+      console.error('Error updating portfolio visibility:', error);
       toast({
         variant: "destructive",
-        title: "Failed to hide portfolio",
-        description: "There was a problem updating the portfolio visibility."
+        title: "Failed to update portfolio",
+        description: "There was a problem updating the portfolio visibility.",
       });
     }
   };
 
-  const handleDeletePortfolio = async (portfolioId: string) => {
+  const handleDeletePortfolio = async () => {
+    if (!deletePortfolioId) return;
+
     try {
-      // Delete the portfolio
       const { error } = await supabase
         .from('portfolios')
         .delete()
-        .eq('id', portfolioId);
-      
+        .eq('id', deletePortfolioId);
+
       if (error) throw error;
-      
+
       // Update local state
-      setPortfolios(prev => prev.filter(p => p.id !== portfolioId));
-      
+      setPortfolios(prev => prev.filter(p => p.id !== deletePortfolioId));
+
       toast({
         title: "Portfolio deleted",
-        description: "The portfolio has been permanently deleted"
+        description: "The portfolio has been permanently deleted.",
       });
+
+      setDeletePortfolioId(null);
+      setShowDeleteDialog(false);
     } catch (error) {
       console.error('Error deleting portfolio:', error);
       toast({
         variant: "destructive",
         title: "Failed to delete portfolio",
-        description: "There was a problem deleting the portfolio."
+        description: "There was a problem deleting the portfolio.",
       });
     }
   };
 
-  const handleToggleFeatured = (portfolioId: string, currentStatus: boolean) => {
-    // Toggle featured status (this would connect to a real API in production)
-    setPortfolios(prev => 
-      prev.map(p => 
-        p.id === portfolioId 
-          ? { ...p, is_featured: !currentStatus } 
-          : p
-      )
-    );
-    
-    toast({
-      title: currentStatus ? "Portfolio unfeatured" : "Portfolio featured",
-      description: currentStatus 
-        ? "The portfolio is no longer featured" 
-        : "The portfolio is now featured on the community page"
-    });
-  };
-
-  const openActionDialog = (portfolio: Portfolio, action: string) => {
-    setActionPortfolio(portfolio);
-    setActionType(action);
-    setShowDialog(true);
-  };
-
-  const confirmAction = () => {
-    if (!actionPortfolio || !actionType) return;
-    
-    switch (actionType) {
-      case 'hide':
-        handleHidePortfolio(actionPortfolio.id);
-        break;
-      case 'delete':
-        handleDeletePortfolio(actionPortfolio.id);
-        break;
-      case 'feature':
-        handleToggleFeatured(actionPortfolio.id, actionPortfolio.is_featured);
-        break;
-      default:
-        break;
-    }
-    
-    setShowDialog(false);
-    setActionPortfolio(null);
-    setActionType(null);
+  const confirmDelete = (id: string) => {
+    setDeletePortfolioId(id);
+    setShowDeleteDialog(true);
   };
 
   const filteredPortfolios = portfolios.filter(portfolio => {
     // Apply search filter
-    const matchesSearch = searchQuery === '' || 
-      (portfolio.title && portfolio.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    const matchesSearch = searchQuery === '' ||
+      portfolio.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (portfolio.description && portfolio.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (portfolio.display_name && portfolio.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+      (portfolio.profileData?.display_name && portfolio.profileData.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
+
     // Apply category filter
-    const matchesCategory = !filterCategory || portfolio.category === filterCategory;
-    
-    return matchesSearch && matchesCategory;
+    const matchesCategory = categoryFilter === null || portfolio.category === categoryFilter;
+
+    // Apply status filter
+    const matchesStatus = statusFilter === null || portfolio.is_public === statusFilter;
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Get unique categories for filter
-  const categories = [...new Set(portfolios.map(p => p.category).filter(Boolean))] as string[];
-
-  const getActionTitle = () => {
-    if (!actionType || !actionPortfolio) return '';
-    
-    switch (actionType) {
-      case 'hide':
-        return `Hide "${actionPortfolio.title}" from community?`;
-      case 'delete':
-        return `Delete portfolio "${actionPortfolio.title}"?`;
-      case 'feature':
-        return actionPortfolio.is_featured
-          ? `Remove "${actionPortfolio.title}" from featured?`
-          : `Feature "${actionPortfolio.title}" on community page?`;
-      default:
-        return '';
-    }
-  };
-
-  const getActionDescription = () => {
-    if (!actionType || !actionPortfolio) return '';
-    
-    switch (actionType) {
-      case 'hide':
-        return 'This will remove the portfolio from the community page but it will still be available to the creator.';
-      case 'delete':
-        return 'This will permanently delete the portfolio. This action cannot be undone.';
-      case 'feature':
-        return actionPortfolio.is_featured
-          ? 'This will remove the portfolio from the featured section of the community page.'
-          : 'This will highlight the portfolio in the featured section of the community page.';
-      default:
-        return '';
-    }
-  };
+  const categories = Array.from(new Set(portfolios.map(p => p.category).filter(Boolean))) as string[];
 
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Portfolio Management</h1>
-        
+
         {/* Filters and Search */}
         <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
           <div className="relative w-full md:w-1/3">
@@ -260,29 +215,49 @@ const PortfolioManagement = () => {
               className="pl-10"
             />
           </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <Button
-              variant={filterCategory === null ? "default" : "outline"}
-              onClick={() => setFilterCategory(null)}
-              size="sm"
-            >
-              All
-            </Button>
-            
-            {categories.map(category => (
-              <Button
-                key={category}
-                variant={filterCategory === category ? "default" : "outline"}
-                onClick={() => setFilterCategory(category)}
-                size="sm"
-              >
-                {category}
-              </Button>
-            ))}
+
+          <div className="flex flex-wrap gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Category
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setCategoryFilter(null)}>
+                  All Categories
+                </DropdownMenuItem>
+                {categories.map(category => (
+                  <DropdownMenuItem key={category} onClick={() => setCategoryFilter(category)}>
+                    {category}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visibility
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setStatusFilter(null)}>
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter(true)}>
+                  Public Only
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter(false)}>
+                  Private Only
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        
+
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
@@ -294,11 +269,11 @@ const PortfolioManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[250px]">Portfolio</TableHead>
+                  <TableHead className="w-[300px]">Portfolio</TableHead>
                   <TableHead className="hidden md:table-cell">Creator</TableHead>
                   <TableHead className="hidden md:table-cell">Category</TableHead>
-                  <TableHead className="hidden lg:table-cell">Engagement</TableHead>
                   <TableHead className="hidden lg:table-cell">Created</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -313,98 +288,73 @@ const PortfolioManagement = () => {
                   filteredPortfolios.map((portfolio) => (
                     <TableRow key={portfolio.id}>
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-                            <FileText className="h-5 w-5 text-gray-500" />
-                          </div>
-                          <div>
-                            <div className="font-medium flex items-center">
-                              {portfolio.title}
-                              {portfolio.is_featured && (
-                                <Star className="h-4 w-4 ml-1 text-amber-500" />
-                              )}
+                        <div>
+                          <div className="font-medium">{portfolio.title}</div>
+                          {portfolio.description && (
+                            <div className="text-sm text-muted-foreground truncate max-w-xs">
+                              {portfolio.description}
                             </div>
-                            <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                              {portfolio.description || 'No description'}
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </TableCell>
-                      
+
                       <TableCell className="hidden md:table-cell">
-                        {portfolio.display_name || 'Unknown user'}
+                        {portfolio.profileData?.display_name || 'Unknown User'}
                       </TableCell>
-                      
+
                       <TableCell className="hidden md:table-cell">
                         {portfolio.category ? (
-                          <Badge variant="outline">
-                            {portfolio.category}
-                          </Badge>
+                          <Badge variant="outline">{portfolio.category}</Badge>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Not specified</span>
+                          <span className="text-muted-foreground text-sm">Uncategorized</span>
                         )}
                       </TableCell>
-                      
+
                       <TableCell className="hidden lg:table-cell">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center">
-                            <Heart className="h-4 w-4 mr-1 text-red-500" />
-                            <span>{portfolio.like_count}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <MessageSquare className="h-4 w-4 mr-1 text-blue-500" />
-                            <span>{portfolio.comment_count}</span>
-                          </div>
-                        </div>
+                        {new Date(portfolio.created_at).toLocaleDateString()}
                       </TableCell>
-                      
-                      <TableCell className="hidden lg:table-cell">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-                          <span className="text-sm">
-                            {new Date(portfolio.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
+
+                      <TableCell>
+                        {portfolio.is_public ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Public
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                            Private
+                          </Badge>
+                        )}
                       </TableCell>
-                      
+
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             title="View Portfolio"
-                            onClick={() => navigate(`/portfolio/view/${portfolio.id}`)}
+                            onClick={() => window.open(`/portfolio/view/${portfolio.id}`, '_blank')}
                           >
-                            <Eye className="h-4 w-4 text-blue-500" />
+                            <ExternalLink className="h-4 w-4 text-blue-500" />
                           </Button>
-                          
-                          <Button 
-                            variant="outline" 
+
+                          <Button
+                            variant="outline"
                             size="sm"
-                            title={portfolio.is_featured ? "Unfeature" : "Feature"}
-                            onClick={() => openActionDialog(portfolio, 'feature')}
+                            title={portfolio.is_public ? "Make Private" : "Make Public"}
+                            onClick={() => handleVisibilityToggle(portfolio.id, portfolio.is_public)}
                           >
-                            {portfolio.is_featured ? (
-                              <StarOff className="h-4 w-4 text-amber-500" />
+                            {portfolio.is_public ? (
+                              <EyeOff className="h-4 w-4 text-amber-500" />
                             ) : (
-                              <Star className="h-4 w-4 text-amber-500" />
+                              <Eye className="h-4 w-4 text-green-500" />
                             )}
                           </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            title="Hide from Community"
-                            onClick={() => openActionDialog(portfolio, 'hide')}
-                          >
-                            <UserX className="h-4 w-4 text-gray-500" />
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
+
+                          <Button
+                            variant="outline"
                             size="sm"
                             title="Delete Portfolio"
-                            onClick={() => openActionDialog(portfolio, 'delete')}
+                            onClick={() => confirmDelete(portfolio.id)}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -418,26 +368,22 @@ const PortfolioManagement = () => {
           </div>
         )}
       </div>
-      
-      {/* Confirmation Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getActionTitle()}</DialogTitle>
+            <DialogTitle>Delete Portfolio</DialogTitle>
             <DialogDescription>
-              {getActionDescription()}
+              Are you sure you want to delete this portfolio? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
               Cancel
             </Button>
-            <Button 
-              variant={actionType === 'delete' ? 'destructive' : 'default'} 
-              onClick={confirmAction}
-            >
-              Confirm
+            <Button variant="destructive" onClick={handleDeletePortfolio}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

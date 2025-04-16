@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   User, UserCog, ShieldAlert, Shield, ShieldCheck, 
-  ArrowUpRight, ArrowDownRight, Trash2, MailPlus, Search
+  ArrowUpRight, ArrowDownRight, Trash2, MailPlus, Search, Crown
 } from 'lucide-react';
 import {
   Dialog,
@@ -73,7 +73,8 @@ const UserManagement = () => {
               ...profile,
               email: 'Unknown',  // We don't have direct access to email
               last_sign_in_at: null,
-              portfolio_count: 0
+              portfolio_count: 0,
+              user_type: profile.user_type as 'free' | 'premium' | 'admin'
             };
           }
           
@@ -81,12 +82,13 @@ const UserManagement = () => {
             ...profile,
             email: 'User ' + profile.id.substring(0, 8),  // Anonymized for display
             last_sign_in_at: null,  // We don't have this data from profiles
-            portfolio_count: portfolioCount || 0
+            portfolio_count: portfolioCount || 0,
+            user_type: profile.user_type as 'free' | 'premium' | 'admin'
           };
         })
       );
       
-      setUsers(usersWithDetails);
+      setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({

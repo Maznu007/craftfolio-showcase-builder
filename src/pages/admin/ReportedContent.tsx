@@ -1,299 +1,322 @@
 
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { 
-  Table, TableHeader, TableBody, TableRow, 
-  TableHead, TableCell 
-} from '@/components/ui/table';
+import { AlertTriangle, CheckCircle, X, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Eye, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
-// This is placeholder data since we haven't implemented a reporting system yet
-const placeholderReports = [
+// Mock data for demonstration
+const mockReportedPortfolios = [
   {
-    id: '1',
-    content_type: 'portfolio',
-    content_id: '98765-placeholder-id',
-    content_title: 'Marketing Portfolio with Inappropriate Content',
-    reporter_id: 'user-123',
-    reporter_name: 'John Smith',
-    reason: 'Inappropriate content',
-    description: 'This portfolio contains explicit language that violates community standards.',
-    status: 'pending',
-    created_at: '2025-04-10T14:30:00Z',
-    report_count: 3
+    id: 'port-1',
+    title: 'Developer Portfolio with Offensive Content',
+    userDisplayName: 'User123',
+    reportCount: 3,
+    reportReasons: ['Inappropriate content', 'Offensive language'],
+    reportDate: '2023-08-15T12:30:00Z',
+    status: 'pending'
   },
   {
-    id: '2',
-    content_type: 'comment',
-    content_id: '54321-placeholder-id',
-    content_title: 'Comment on Developer Portfolio',
-    reporter_id: 'user-456',
-    reporter_name: 'Alice Johnson',
-    reason: 'Spam',
-    description: 'This comment is promotional spam and not related to the portfolio.',
-    status: 'pending',
-    created_at: '2025-04-12T09:15:00Z',
-    report_count: 1
-  },
-  {
-    id: '3',
-    content_type: 'portfolio',
-    content_id: '13579-placeholder-id',
-    content_title: 'Photography Portfolio with Misleading Content',
-    reporter_id: 'user-789',
-    reporter_name: 'Michael Brown',
-    reason: 'Misleading information',
-    description: 'The portfolio claims to include original photos, but they appear to be stock images.',
-    status: 'pending',
-    created_at: '2025-04-13T17:45:00Z',
-    report_count: 2
+    id: 'port-2',
+    title: 'Graphic Design Portfolio with Copyright Issues',
+    userDisplayName: 'DesignerA',
+    reportCount: 2,
+    reportReasons: ['Copyright violation', 'Stolen work'],
+    reportDate: '2023-08-10T09:15:00Z',
+    status: 'pending'
   }
 ];
 
-type Report = typeof placeholderReports[0];
+const mockReportedComments = [
+  {
+    id: 'comm-1',
+    portfolioTitle: 'Web Development Portfolio',
+    userDisplayName: 'Commenter456',
+    content: 'This comment contains inappropriate language that violated community standards.',
+    reportCount: 1,
+    reportReasons: ['Harassment'],
+    reportDate: '2023-08-14T14:45:00Z',
+    status: 'pending'
+  }
+];
+
+type ReportStatus = 'pending' | 'resolved' | 'ignored';
 
 const ReportedContent = () => {
-  const [reports, setReports] = useState<Report[]>(placeholderReports);
-  const [actionReport, setActionReport] = useState<Report | null>(null);
-  const [actionType, setActionType] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState(false);
-
-  const handleResolveReport = (reportId: string) => {
-    // Update local state to mark as resolved
-    setReports(prev => 
-      prev.map(report => 
-        report.id === reportId 
-          ? { ...report, status: 'resolved' } 
-          : report
-      )
-    );
+  const [portfolios, setPortfolios] = useState(mockReportedPortfolios);
+  const [comments, setComments] = useState(mockReportedComments);
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
+  
+  const handlePortfolioAction = (id: string, action: 'resolve' | 'ignore' | 'delete') => {
+    setPortfolios(prev => prev.map(item => {
+      if (item.id === id) {
+        const newStatus = action === 'delete' ? 'resolved' : action === 'resolve' ? 'resolved' : 'ignored';
+        return { ...item, status: newStatus };
+      }
+      return item;
+    }));
+    
+    const actionText = action === 'delete' ? 'deleted' : action === 'resolve' ? 'resolved' : 'ignored';
     
     toast({
-      title: "Report resolved",
-      description: "The report has been marked as resolved."
+      title: `Report ${actionText}`,
+      description: `The reported portfolio has been ${actionText}.`
     });
   };
-
-  const handleDeleteContent = (reportId: string) => {
-    // In a real app, this would delete the reported content
-    // For now, we'll just mark the report as resolved and update the UI
-    setReports(prev => 
-      prev.map(report => 
-        report.id === reportId 
-          ? { ...report, status: 'content_removed' } 
-          : report
-      )
-    );
+  
+  const handleCommentAction = (id: string, action: 'resolve' | 'ignore' | 'delete') => {
+    setComments(prev => prev.map(item => {
+      if (item.id === id) {
+        const newStatus = action === 'delete' ? 'resolved' : action === 'resolve' ? 'resolved' : 'ignored';
+        return { ...item, status: newStatus };
+      }
+      return item;
+    }));
+    
+    const actionText = action === 'delete' ? 'deleted' : action === 'resolve' ? 'resolved' : 'ignored';
     
     toast({
-      title: "Content removed",
-      description: "The reported content has been removed."
+      title: `Report ${actionText}`,
+      description: `The reported comment has been ${actionText}.`
     });
   };
-
-  const openActionDialog = (report: Report, action: string) => {
-    setActionReport(report);
-    setActionType(action);
-    setShowDialog(true);
-  };
-
-  const confirmAction = () => {
-    if (!actionReport || !actionType) return;
-    
-    switch (actionType) {
-      case 'resolve':
-        handleResolveReport(actionReport.id);
-        break;
-      case 'delete':
-        handleDeleteContent(actionReport.id);
-        break;
+  
+  const filteredPortfolios = portfolios.filter(item => 
+    statusFilter === 'all' || item.status === statusFilter
+  );
+  
+  const filteredComments = comments.filter(item => 
+    statusFilter === 'all' || item.status === statusFilter
+  );
+  
+  const getStatusBadge = (status: ReportStatus) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case 'resolved':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Resolved</Badge>;
+      case 'ignored':
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Ignored</Badge>;
       default:
-        break;
-    }
-    
-    setShowDialog(false);
-    setActionReport(null);
-    setActionType(null);
-  };
-
-  const getActionTitle = () => {
-    if (!actionType || !actionReport) return '';
-    
-    switch (actionType) {
-      case 'resolve':
-        return 'Resolve report without action?';
-      case 'delete':
-        return `Remove reported ${actionReport.content_type}?`;
-      default:
-        return '';
+        return null;
     }
   };
-
-  const getActionDescription = () => {
-    if (!actionType || !actionReport) return '';
-    
-    switch (actionType) {
-      case 'resolve':
-        return 'This will mark the report as resolved without taking any action on the content.';
-      case 'delete':
-        return `This will remove the reported ${actionReport.content_type} and mark the report as resolved.`;
-      default:
-        return '';
-    }
-  };
-
+  
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Reported Content</h1>
-        
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="flex items-start">
-            <AlertTriangle className="text-yellow-500 h-5 w-5 mr-2 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-yellow-700">Demo Feature</h3>
-              <p className="text-sm text-yellow-600">
-                This page displays placeholder data to demonstrate how the content reporting system would work. 
-                The reporting functionality has not been fully implemented yet.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="border rounded-md overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[250px]">Reported Content</TableHead>
-                <TableHead className="hidden md:table-cell">Type</TableHead>
-                <TableHead className="hidden md:table-cell">Reason</TableHead>
-                <TableHead className="hidden lg:table-cell">Reporter</TableHead>
-                <TableHead className="hidden lg:table-cell">Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reports.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No reported content found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                reports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{report.content_title}</div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {report.description}
-                        </div>
-                        {report.report_count > 1 && (
-                          <Badge variant="destructive" className="mt-1">
-                            {report.report_count} reports
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    
-                    <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline" className="capitalize">
-                        {report.content_type}
-                      </Badge>
-                    </TableCell>
-                    
-                    <TableCell className="hidden md:table-cell">
-                      {report.reason}
-                    </TableCell>
-                    
-                    <TableCell className="hidden lg:table-cell">
-                      {report.reporter_name}
-                    </TableCell>
-                    
-                    <TableCell className="hidden lg:table-cell">
-                      {new Date(report.created_at).toLocaleDateString()}
-                    </TableCell>
-                    
-                    <TableCell className="text-right">
-                      {report.status === 'pending' ? (
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            title="View Content"
-                          >
-                            <Eye className="h-4 w-4 text-blue-500" />
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            title="Resolve Without Action"
-                            onClick={() => openActionDialog(report, 'resolve')}
-                          >
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          </Button>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            title="Remove Content"
-                            onClick={() => openActionDialog(report, 'delete')}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Badge 
-                          variant={report.status === 'resolved' ? "outline" : "destructive"} 
-                          className="capitalize"
-                        >
-                          {report.status === 'resolved' ? 'Resolved' : 'Content Removed'}
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-      
-      {/* Confirmation Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{getActionTitle()}</DialogTitle>
-            <DialogDescription>
-              {getActionDescription()}
-            </DialogDescription>
-          </DialogHeader>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Reported Content</h1>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant={actionType === 'delete' ? 'destructive' : 'default'} 
-              onClick={confirmAction}
-            >
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                {statusFilter === 'all' ? 'All Reports' : 
+                 statusFilter === 'pending' ? 'Pending' : 
+                 statusFilter === 'resolved' ? 'Resolved' : 'Ignored'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                All Reports
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('pending')}>
+                Pending
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('resolved')}>
+                Resolved
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('ignored')}>
+                Ignored
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <Tabs defaultValue="portfolios" className="mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="portfolios" className="flex items-center">
+              Portfolios
+              {portfolios.filter(p => p.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {portfolios.filter(p => p.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="comments" className="flex items-center">
+              Comments
+              {comments.filter(c => c.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {comments.filter(c => c.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="portfolios">
+            {filteredPortfolios.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No reported portfolios matching the current filter
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredPortfolios.map(report => (
+                  <Card key={report.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-medium">{report.title}</CardTitle>
+                          <CardDescription>By {report.userDisplayName}</CardDescription>
+                        </div>
+                        {getStatusBadge(report.status as ReportStatus)}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Report Details</h4>
+                          <p className="text-sm mt-1">Reported {report.reportCount} times</p>
+                          <p className="text-sm mt-1">Reported on {new Date(report.reportDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Reasons</h4>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {report.reportReasons.map((reason, index) => (
+                              <Badge key={index} variant="secondary">{reason}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {report.status === 'pending' && (
+                        <div className="flex justify-end gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'ignore')}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Ignore
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'resolve')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                            Resolve
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'delete')}
+                          >
+                            Delete Portfolio
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="comments">
+            {filteredComments.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No reported comments matching the current filter
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredComments.map(report => (
+                  <Card key={report.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-medium">Comment on "{report.portfolioTitle}"</CardTitle>
+                          <CardDescription>By {report.userDisplayName}</CardDescription>
+                        </div>
+                        {getStatusBadge(report.status as ReportStatus)}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-gray-50 p-3 rounded-md border mb-4">
+                        <p className="text-sm italic">"{report.content}"</p>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Report Details</h4>
+                          <p className="text-sm mt-1">Reported {report.reportCount} times</p>
+                          <p className="text-sm mt-1">Reported on {new Date(report.reportDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Reasons</h4>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {report.reportReasons.map((reason, index) => (
+                              <Badge key={index} variant="secondary">{reason}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {report.status === 'pending' && (
+                        <div className="flex justify-end gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'ignore')}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Ignore
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'resolve')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                            Resolve
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'delete')}
+                          >
+                            Delete Comment
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </AdminLayout>
   );
 };

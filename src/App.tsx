@@ -19,6 +19,7 @@ import Community from "./pages/Community";
 
 // Admin Routes
 import Admin from "./pages/admin/Admin";
+import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import PortfolioManagement from "./pages/admin/PortfolioManagement";
@@ -50,6 +51,7 @@ const App = () => {
               
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/portfolios" element={<PortfolioManagement />} />

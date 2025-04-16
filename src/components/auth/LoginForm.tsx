@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface LoginFormProps {
   onResetPassword: () => void;
@@ -14,6 +15,7 @@ interface LoginFormProps {
 
 const LoginForm = ({ onResetPassword }: LoginFormProps) => {
   const navigate = useNavigate();
+  const { refreshUserProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,11 +41,37 @@ const LoginForm = ({ onResetPassword }: LoginFormProps) => {
       
       console.log("Login successful:", data);
       
+      // Refresh user profile to get user type
+      await refreshUserProfile();
+      
+      // Get user type to determine redirect
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (profileError) {
+        console.error("Error fetching user profile:", profileError);
+        toast({
+          title: "Logged in successfully",
+          description: `Welcome back, ${email}!`,
+        });
+        navigate('/portfolio/create');
+        return;
+      }
+      
       toast({
         title: "Logged in successfully",
         description: `Welcome back, ${email}!`,
       });
-      navigate('/portfolio/create');
+      
+      // Redirect based on user role
+      if (profileData.user_type === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/portfolio/create');
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
