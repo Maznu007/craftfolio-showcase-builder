@@ -27,7 +27,8 @@ const UserManagement = () => {
     try {
       setLoading(true);
       
-      // Get all profiles including user_type
+      console.log('Fetching all user profiles...');
+      // Get all profiles including user_type, not filtering by type
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, display_name, user_type, created_at, email');
@@ -37,7 +38,7 @@ const UserManagement = () => {
         throw profilesError;
       }
       
-      console.log('Fetched profiles:', profiles);
+      console.log('Fetched profiles:', profiles?.length || 0, 'profiles');
       
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found!');
@@ -74,7 +75,7 @@ const UserManagement = () => {
         })
       );
       
-      console.log('Processed users:', usersWithDetails);
+      console.log('Processed users:', usersWithDetails.length, 'users with details');
       setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
