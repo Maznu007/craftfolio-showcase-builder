@@ -24,49 +24,26 @@ const RatingModeration = () => {
     queryFn: async () => {
       // Using raw SQL query to get ratings with user and item information
       const { data, error } = await supabase
-        .from('ratings')
-        .select('*')
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false });
+        .rpc('execute_sql', { 
+          sql_query: `
+            SELECT r.*, p.display_name, 
+            CASE
+              WHEN r.item_type = 'portfolio' THEN (SELECT title FROM portfolios WHERE id = r.item_id::uuid)
+              ELSE 'Unknown Item'
+            END as item_title
+            FROM ratings r
+            LEFT JOIN profiles p ON p.id = r.user_id
+            WHERE r.is_deleted = false
+            ORDER BY r.created_at DESC
+          `
+        });
 
       if (error) {
         console.error('Error fetching ratings:', error);
         throw error;
       }
-
-      // Fetch additional info for display
-      const ratingsWithInfo = await Promise.all(
-        data.map(async (rating) => {
-          // Get user display name
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('id', rating.user_id)
-            .single();
-
-          // Get item title based on item type
-          let itemTitle = 'Unknown';
-          if (rating.item_type === 'portfolio') {
-            const { data: portfolioData } = await supabase
-              .from('portfolios')
-              .select('title')
-              .eq('id', rating.item_id)
-              .single();
-            
-            if (portfolioData) {
-              itemTitle = portfolioData.title;
-            }
-          }
-
-          return {
-            ...rating,
-            display_name: userData?.display_name || 'Unknown User',
-            item_title: itemTitle,
-          };
-        })
-      );
-
-      return ratingsWithInfo;
+      
+      return data as Rating[];
     },
   });
 
@@ -74,7 +51,7 @@ const RatingModeration = () => {
     // Raw SQL approach to update the rating
     const { error } = await supabase
       .rpc('execute_sql', { 
-        sql_query: `UPDATE ratings SET is_deleted = true WHERE id = '${id}'`
+        sql_query: `UPDATE ratings SET is_deleted = true WHERE id = '${id}' RETURNING id`
       });
 
     if (error) {

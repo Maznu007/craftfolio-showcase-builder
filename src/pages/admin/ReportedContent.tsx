@@ -109,7 +109,7 @@ const ReportedContent = () => {
 
   const handleMarkReviewed = async (reportId: string) => {
     const { error } = await supabase.rpc('execute_sql', {
-      sql_query: `UPDATE content_reports SET status = 'reviewed' WHERE id = '${reportId}'`
+      sql_query: `UPDATE content_reports SET status = 'reviewed' WHERE id = '${reportId}' RETURNING id`
     });
 
     if (error) {
