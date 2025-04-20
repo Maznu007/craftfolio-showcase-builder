@@ -19,6 +19,7 @@ export const useUserManagement = () => {
       setLoading(true);
       console.log('Fetching all user profiles...');
 
+      // Modified query to get all profiles from the profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -37,14 +38,17 @@ export const useUserManagement = () => {
         return;
       }
 
+      // Transform the profiles data into UserData format
       const usersWithDetails = profiles.map(profile => ({
-        ...profile,
+        id: profile.id,
         email: profile.email || 'User ' + profile.id.substring(0, 8),
-        last_sign_in_at: null,
-        portfolio_count: 0,
+        display_name: profile.display_name || 'Unnamed User',
         user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase()))
           ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
-          : 'free'
+          : 'free',
+        last_sign_in_at: null,
+        created_at: profile.created_at,
+        portfolio_count: 0
       }));
 
       console.log('Processed users:', usersWithDetails.length, 'users with details');
