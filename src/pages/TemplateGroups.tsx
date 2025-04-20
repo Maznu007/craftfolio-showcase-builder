@@ -10,6 +10,7 @@ import { executeSql } from '@/utils/db-helpers';
 import { TemplateGroup, TemplateFollower } from '@/types/portfolio';
 import { Search, Star, Users, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const TemplateGroups = () => {
   const navigate = useNavigate();
@@ -47,20 +48,13 @@ const TemplateGroups = () => {
       
       if (user?.user) {
         try {
-          const { data, error } = await supabase.rpc('execute_sql', {
-            sql_query: `
-              SELECT template_id FROM template_followers
-              WHERE user_id = '${user.user.id}'
-            `
-          });
+          const followed = await executeSql<{ template_id: string }>(`
+            SELECT template_id FROM template_followers
+            WHERE user_id = '${user.user.id}'
+          `);
           
-          if (error) {
-            console.error("Error fetching followed templates:", error);
-            return;
-          }
-          
-          if (data && Array.isArray(data)) {
-            setFollowedTemplates(data.map(item => item.template_id));
+          if (followed && Array.isArray(followed)) {
+            setFollowedTemplates(followed.map(item => item.template_id));
           }
         } catch (error) {
           console.error("Error in followed templates query:", error);
@@ -121,15 +115,11 @@ const TemplateGroups = () => {
       const isFollowing = followedTemplates.includes(templateId);
       
       if (isFollowing) {
-        const { error } = await supabase.rpc('execute_sql', {
-          sql_query: `
-            DELETE FROM template_followers
-            WHERE user_id = '${user.user.id}'
-            AND template_id = '${templateId}'
-          `
-        });
-        
-        if (error) throw error;
+        await executeSql(`
+          DELETE FROM template_followers
+          WHERE user_id = '${user.user.id}'
+          AND template_id = '${templateId}'
+        `);
         
         setFollowedTemplates(followedTemplates.filter(id => id !== templateId));
         
@@ -138,14 +128,10 @@ const TemplateGroups = () => {
           description: "You will no longer receive updates for this template"
         });
       } else {
-        const { error } = await supabase.rpc('execute_sql', {
-          sql_query: `
-            INSERT INTO template_followers (user_id, template_id)
-            VALUES ('${user.user.id}', '${templateId}')
-          `
-        });
-        
-        if (error) throw error;
+        await executeSql(`
+          INSERT INTO template_followers (user_id, template_id)
+          VALUES ('${user.user.id}', '${templateId}')
+        `);
         
         setFollowedTemplates([...followedTemplates, templateId]);
         
