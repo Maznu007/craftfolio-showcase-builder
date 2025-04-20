@@ -4,7 +4,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { SidebarMenuButton, SidebarMenuItem } from './ui/sidebar';
+import { 
+  SidebarMenuButton, 
+  SidebarMenuItem, 
+  SidebarProvider 
+} from './ui/sidebar';
 
 const SupportMenuItem = () => {
   const { user } = useAuth();
@@ -63,21 +67,23 @@ const SupportMenuItem = () => {
   }, [user]);
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        onClick={() => {
-          setHasUnread(false);
-          navigate('/help-support');
-        }}
-        className="relative"
-      >
-        <MessageSquare />
-        <span>Help & Support</span>
-        {hasUnread && (
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        )}
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+    <SidebarProvider>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          onClick={() => {
+            setHasUnread(false);
+            navigate('/help-support');
+          }}
+          className="relative"
+        >
+          <MessageSquare />
+          <span>Help & Support</span>
+          {hasUnread && (
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
+          )}
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarProvider>
   );
 };
 
