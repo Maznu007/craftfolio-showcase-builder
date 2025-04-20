@@ -42,7 +42,7 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           // Refresh user profile to make sure we have the latest data
           await refreshUserProfile();
           
-          // This is the line with the error - we need to fix the type comparison
+          // Fixed type comparison by using comparison with string literal
           if (userType !== 'admin') {
             toast({
               title: "Access denied",
@@ -54,14 +54,12 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
         }
       } catch (error) {
         console.error("Admin verification error:", error);
-        if (userType !== 'admin') {
-          toast({
-            title: "Access denied",
-            description: "You don't have permission to access the admin area",
-            variant: "destructive",
-          });
-          navigate('/dashboard');
-        }
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to access the admin area",
+          variant: "destructive",
+        });
+        navigate('/dashboard');
       } finally {
         setIsVerifying(false);
       }
