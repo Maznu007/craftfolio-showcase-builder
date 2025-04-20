@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { MessageSquare, Send } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 interface Message {
   id: string;
@@ -43,26 +44,39 @@ const HelpSupport = () => {
     
     const initializeTicket = async () => {
       try {
-        // Check for existing open ticket
-        const { data: existingTicket } = await supabase
-          .from('support_tickets')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('status', 'open')
-          .single();
-
-        if (existingTicket) {
-          setCurrentTicket(existingTicket);
-        } else {
-          // Create new ticket
-          const { data: newTicket, error: ticketError } = await supabase
+        // Check for existing open ticket or use ticket from query parameter
+        if (adminTicketId) {
+          const { data: ticketData } = await supabase
             .from('support_tickets')
-            .insert([{ user_id: user.id }])
-            .select()
+            .select('*')
+            .eq('id', adminTicketId)
+            .single();
+            
+          if (ticketData) {
+            setCurrentTicket(ticketData);
+          }
+        } else {
+          // Check for user's open ticket
+          const { data: existingTicket } = await supabase
+            .from('support_tickets')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('status', 'open')
             .single();
 
-          if (ticketError) throw ticketError;
-          setCurrentTicket(newTicket);
+          if (existingTicket) {
+            setCurrentTicket(existingTicket);
+          } else {
+            // Create new ticket for the user
+            const { data: newTicket, error: ticketError } = await supabase
+              .from('support_tickets')
+              .insert([{ user_id: user.id }])
+              .select()
+              .single();
+
+            if (ticketError) throw ticketError;
+            setCurrentTicket(newTicket);
+          }
         }
       } catch (error) {
         console.error('Error initializing ticket:', error);
@@ -75,7 +89,7 @@ const HelpSupport = () => {
     };
 
     initializeTicket();
-  }, [user, navigate, toast]);
+  }, [user, navigate, toast, adminTicketId]);
 
   useEffect(() => {
     if (!currentTicket) return;

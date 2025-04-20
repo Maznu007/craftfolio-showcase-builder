@@ -12,6 +12,24 @@ import { formatDistanceToNow } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { MessageSquare } from 'lucide-react';
 
+type UserData = {
+  email: string;
+}
+
+interface SupportTicket {
+  id: string;
+  user_id: string;
+  status: string;
+  last_updated: string;
+  user?: UserData;
+  messages?: {
+    id: string;
+    message: string;
+    timestamp: string;
+    sender_id: string;
+  }[];
+}
+
 const AdminSupport = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -37,7 +55,7 @@ const AdminSupport = () => {
         .order('last_updated', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as SupportTicket[];
     },
   });
 
@@ -64,7 +82,7 @@ const AdminSupport = () => {
               <CardHeader className="flex flex-row items-center justify-between p-4">
                 <div>
                   <CardTitle className="text-lg font-semibold">
-                    Ticket from {ticket.user?.email}
+                    Ticket from {ticket.user?.email || 'Unknown User'}
                   </CardTitle>
                   <p className="text-sm text-gray-500">
                     Last updated {formatDistanceToNow(new Date(ticket.last_updated))} ago
