@@ -29,27 +29,46 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import RatingModeration from '@/components/admin/RatingModeration';
 
+interface ReportedContent {
+  id: string;
+  content_type: string;
+  content_id: string;
+  reason: string;
+  status: string;
+  reported_at: string;
+  reported_by_name: string;
+  reported_by: string;
+  content_preview: string;
+}
+
 const ReportedContent = () => {
-  const [selectedReport, setSelectedReport] = React.useState<any>(null);
+  const [selectedReport, setSelectedReport] = React.useState<ReportedContent | null>(null);
   const [modalOpen, setModalOpen] = React.useState(false);
 
   const { data: reports, isLoading, refetch } = useQuery({
     queryKey: ['admin-reports'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_reported_content')
-        .select('*')
-        .order('reported_at', { ascending: false });
+      // Using raw SQL to fetch the view data
+      const { data, error } = await supabase.rpc('execute_sql', {
+        sql_query: 'SELECT * FROM admin_reported_content ORDER BY reported_at DESC'
+      });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching reports:', error);
+        throw error;
+      }
+      
+      return data as ReportedContent[];
     },
   });
 
   const handleBanUser = async (userId: string) => {
-    const { error } = await supabase.rpc('ban_user', { user_id_to_ban: userId });
+    const { error } = await supabase.rpc('execute_sql', {
+      sql_query: `SELECT ban_user('${userId}')`
+    });
     
     if (error) {
+      console.error('Error banning user:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -67,12 +86,12 @@ const ReportedContent = () => {
 
   const handleWarnUser = async (userId: string) => {
     const warning = "Your content has been flagged for review. This is a warning.";
-    const { error } = await supabase.rpc('warn_user', { 
-      user_id_to_warn: userId,
-      warning: warning
+    const { error } = await supabase.rpc('execute_sql', {
+      sql_query: `SELECT warn_user('${userId}', '${warning}')`
     });
     
     if (error) {
+      console.error('Error warning user:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -89,12 +108,12 @@ const ReportedContent = () => {
   };
 
   const handleMarkReviewed = async (reportId: string) => {
-    const { error } = await supabase
-      .from('content_reports')
-      .update({ status: 'reviewed' })
-      .eq('id', reportId);
+    const { error } = await supabase.rpc('execute_sql', {
+      sql_query: `UPDATE content_reports SET status = 'reviewed' WHERE id = '${reportId}'`
+    });
 
     if (error) {
+      console.error('Error updating report status:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -147,7 +166,7 @@ const ReportedContent = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {reports.map((report: any) => (
+                {reports.map((report: ReportedContent) => (
                   <Card key={report.id}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">

@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { Ban, Flag, ShieldCheck } from 'lucide-react';
 
 interface Rating {
   id: string;
@@ -23,28 +22,63 @@ const RatingModeration = () => {
   const { data: ratings, isLoading, refetch } = useQuery({
     queryKey: ['admin-ratings'],
     queryFn: async () => {
+      // Using raw SQL query to get ratings with user and item information
       const { data, error } = await supabase
         .from('ratings')
-        .select(`
-          *,
-          profiles:user_id(display_name),
-          portfolios:item_id(title)
-        `)
+        .select('*')
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching ratings:', error);
+        throw error;
+      }
+
+      // Fetch additional info for display
+      const ratingsWithInfo = await Promise.all(
+        data.map(async (rating) => {
+          // Get user display name
+          const { data: userData } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', rating.user_id)
+            .single();
+
+          // Get item title based on item type
+          let itemTitle = 'Unknown';
+          if (rating.item_type === 'portfolio') {
+            const { data: portfolioData } = await supabase
+              .from('portfolios')
+              .select('title')
+              .eq('id', rating.item_id)
+              .single();
+            
+            if (portfolioData) {
+              itemTitle = portfolioData.title;
+            }
+          }
+
+          return {
+            ...rating,
+            display_name: userData?.display_name || 'Unknown User',
+            item_title: itemTitle,
+          };
+        })
+      );
+
+      return ratingsWithInfo;
     },
   });
 
-  const handleDeleteRating = async (id: string, userId: string) => {
+  const handleDeleteRating = async (id: string) => {
+    // Raw SQL approach to update the rating
     const { error } = await supabase
-      .from('ratings')
-      .update({ is_deleted: true })
-      .eq('id', id);
+      .rpc('execute_sql', { 
+        sql_query: `UPDATE ratings SET is_deleted = true WHERE id = '${id}'`
+      });
 
     if (error) {
+      console.error('Error deleting rating:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -93,7 +127,7 @@ const RatingModeration = () => {
               <Button 
                 variant="destructive" 
                 size="sm"
-                onClick={() => handleDeleteRating(rating.id, rating.user_id)}
+                onClick={() => handleDeleteRating(rating.id)}
               >
                 Delete Rating
               </Button>
