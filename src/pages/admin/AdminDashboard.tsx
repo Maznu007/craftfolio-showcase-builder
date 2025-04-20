@@ -37,6 +37,18 @@ const AdminDashboard = () => {
     queryKey: ['admin-dashboard-metrics'],
     queryFn: async () => {
       console.log('Fetching dashboard metrics');
+      
+      // First, fetch the direct count from profiles table to ensure accuracy
+      const { count: profilesCount, error: countError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) {
+        console.error('Error fetching profiles count:', countError);
+        throw countError;
+      }
+      
+      // Then get the rest of the metrics from the view
       const { data, error } = await supabase
         .from('admin_dashboard_metrics')
         .select('*')
@@ -46,10 +58,18 @@ const AdminDashboard = () => {
         console.error('Error fetching dashboard metrics:', error);
         throw error;
       }
-      console.log('Dashboard metrics:', data);
-      return data as DashboardMetrics;
+      
+      // Create a new metrics object with the accurate count
+      const accurateMetrics = {
+        ...data,
+        total_users: profilesCount || 0
+      } as DashboardMetrics;
+      
+      console.log('Dashboard metrics with accurate count:', accurateMetrics);
+      return accurateMetrics;
     },
-    staleTime: 0 // Always refetch to ensure fresh data
+    staleTime: 0, // Always refetch to ensure fresh data
+    refetchInterval: 5000 // Refetch every 5 seconds to keep data fresh
   });
 
   // Use react-query for recent portfolios
@@ -64,7 +84,8 @@ const AdminDashboard = () => {
       
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 0 // Always fetch fresh data
   });
 
   // Use react-query for active users count
@@ -76,7 +97,8 @@ const AdminDashboard = () => {
       
       if (error) throw error;
       return data;
-    }
+    },
+    staleTime: 0 // Always fetch fresh data
   });
 
   // Combine the recent activity data when all queries are complete

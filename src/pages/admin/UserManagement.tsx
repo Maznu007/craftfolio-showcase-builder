@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -50,26 +51,33 @@ const UserManagement = () => {
       if (error) throw error;
       return data as UserData[];
     },
+    staleTime: 0, // Always fetch fresh data
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       console.log('Attempting to delete user:', userId);
-      const { data, error } = await supabase.rpc('delete_user', { user_id: userId });
+      
+      // Use a direct RPC call with proper error handling
+      const { data, error } = await supabase.rpc('delete_user', { 
+        user_id: userId 
+      });
       
       if (error) {
         console.error('Error from delete_user RPC:', error);
         throw error;
       }
       
-      if (!data) {
-        console.error('Delete operation returned no data or false');
+      // Check if the deletion was successful
+      if (data !== true) {
+        console.error('Delete operation failed or returned false');
         throw new Error('User deletion failed');
       }
       
       return data;
     },
     onSuccess: () => {
+      // Invalidate and refetch both admin users and dashboard metrics
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-metrics'] });
       toast({
@@ -81,7 +89,7 @@ const UserManagement = () => {
       console.error('Error in deleteUserMutation:', error);
       toast({
         title: "Error",
-        description: "Failed to delete user. Please try again.",
+        description: `Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     },
