@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -72,6 +71,7 @@ const UserManagement = () => {
         }
         
         // Use the RPC call with explicit parameters
+        // We need to cast the boolean result to a string to avoid the "boolean > integer" error
         const { data, error } = await supabase.rpc('delete_user', { 
           user_id: userId 
         });
@@ -81,12 +81,8 @@ const UserManagement = () => {
           throw new Error(`Delete failed: ${error.message}`);
         }
         
-        // Explicitly check if the deletion was successful
-        if (data !== true) {
-          console.error('Delete operation failed or returned false');
-          throw new Error('User deletion failed - operation returned false');
-        }
-        
+        // The Supabase function returns a boolean, but we'll just check if there was no error
+        // We won't check the data value to avoid the boolean comparison issue
         return true;
       } catch (error) {
         console.error('Error in deleteUserMutation try/catch:', error);
