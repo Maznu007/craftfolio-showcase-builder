@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { executeSql } from '@/utils/db-helpers';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ReportedContent {
   id: string;
@@ -27,47 +27,30 @@ const ReportedContent = () => {
   
   const { data: reports, isLoading, refetch } = useQuery({
     queryKey: ['admin-reports', activeTab],
-    queryFn: async () => {
-      try {
-        // Using raw SQL to get reported content with related information
-        const { data, error } = await supabase.rpc('execute_sql', {
-          sql_query: `
-            SELECT r.*, 
-              reporter.display_name as reporter_name,
-              CASE
-                WHEN r.content_type = 'portfolio' THEN (SELECT title FROM portfolios WHERE id = r.content_id::uuid)
-                ELSE 'Unknown Content'
-              END as content_title,
-              CASE
-                WHEN r.content_type = 'portfolio' THEN (SELECT user_id FROM portfolios WHERE id = r.content_id::uuid)
-                ELSE NULL
-              END as content_owner_id,
-              CASE
-                WHEN r.content_type = 'portfolio' THEN (
-                  SELECT p.display_name FROM portfolios port
-                  JOIN profiles p ON p.id = port.user_id
-                  WHERE port.id = r.content_id::uuid
-                )
-                ELSE 'Unknown User'
-              END as content_owner_name
-            FROM content_reports r
-            LEFT JOIN profiles reporter ON reporter.id = r.reporter_id
-            WHERE r.status = '${activeTab}'
-            ORDER BY r.created_at DESC
-          `
-        });
-
-        if (error) {
-          console.error('Error fetching reports:', error);
-          throw error;
-        }
-        
-        return data as ReportedContent[];
-      } catch (error) {
-        console.error('Error in query:', error);
-        return [] as ReportedContent[];
-      }
-    },
+    queryFn: () => executeSql<ReportedContent>(`
+      SELECT r.*, 
+        reporter.display_name as reporter_name,
+        CASE
+          WHEN r.content_type = 'portfolio' THEN (SELECT title FROM portfolios WHERE id = r.content_id::uuid)
+          ELSE 'Unknown Content'
+        END as content_title,
+        CASE
+          WHEN r.content_type = 'portfolio' THEN (SELECT user_id FROM portfolios WHERE id = r.content_id::uuid)
+          ELSE NULL
+        END as content_owner_id,
+        CASE
+          WHEN r.content_type = 'portfolio' THEN (
+            SELECT p.display_name FROM portfolios port
+            JOIN profiles p ON p.id = port.user_id
+            WHERE port.id = r.content_id::uuid
+          )
+          ELSE 'Unknown User'
+        END as content_owner_name
+      FROM content_reports r
+      LEFT JOIN profiles reporter ON reporter.id = r.reporter_id
+      WHERE r.status = '${activeTab}'
+      ORDER BY r.created_at DESC
+    `),
     enabled: !!activeTab
   });
 

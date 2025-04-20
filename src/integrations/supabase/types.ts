@@ -263,11 +263,23 @@ export type Database = {
         }
         Relationships: []
       }
+      template_usage_stats: {
+        Row: {
+          portfolio_count: number | null
+          template_id: string | null
+          unique_user_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_user: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      execute_sql: {
+        Args: { sql_query: string }
+        Returns: Json
       }
       get_active_users_last_7_days: {
         Args: Record<PropertyKey, never>

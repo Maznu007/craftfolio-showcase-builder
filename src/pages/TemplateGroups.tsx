@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
-import { supabase } from '@/integrations/supabase/client';
+import { executeSql } from '@/utils/db-helpers';
 import { TemplateGroup, TemplateFollower } from '@/types/portfolio';
 import { Search, Star, Users, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -18,56 +17,36 @@ const TemplateGroups = () => {
   const [category, setCategory] = useState<string | null>(null);
   const [followedTemplates, setFollowedTemplates] = useState<string[]>([]);
   
-  // Fetch template groups
   const { data: templateGroups, isLoading, error } = useQuery({
     queryKey: ['templateGroups'],
     queryFn: async () => {
-      // Get all public portfolios
-      const { data: portfolios, error } = await supabase
-        .from('portfolios')
-        .select('template_id, id')
-        .eq('is_public', true);
+      const portfolios = await executeSql<{ template_id: string, count: number }>(`
+        SELECT template_id, COUNT(*) as count
+        FROM portfolios
+        WHERE is_public = true
+        GROUP BY template_id
+      `);
       
-      if (error) throw error;
-      
-      // Count portfolios by template
-      const templateCounts: Record<string, number> = {};
-      portfolios.forEach(portfolio => {
-        const templateId = portfolio.template_id;
-        templateCounts[templateId] = (templateCounts[templateId] || 0) + 1;
-      });
-      
-      // Create template groups
-      const groups: TemplateGroup[] = Object.entries(templateCounts).map(([templateId, count]) => {
-        const templateName = getTemplateDisplayName(templateId);
-        const isPremium = templateId.startsWith('premium-');
-        
-        return {
-          id: templateId,
-          name: templateName,
-          description: isPremium 
-            ? 'Premium template with advanced features'
-            : 'Standard template for professional portfolios',
-          thumbnail: getTemplateThumbnail(templateId),
-          portfolioCount: count,
-          isPopular: count > 5, // Mark as popular if more than 5 portfolios use it
-          isNew: false // To be determined by creation date in a real implementation
-        };
-      });
-      
-      // Sort by popularity (most used first)
-      return groups.sort((a, b) => b.portfolioCount - a.portfolioCount);
+      return portfolios.map(({ template_id, count }) => ({
+        id: template_id,
+        name: getTemplateDisplayName(template_id),
+        description: template_id.startsWith('premium-') 
+          ? 'Premium template with advanced features'
+          : 'Standard template for professional portfolios',
+        thumbnail: getTemplateThumbnail(template_id),
+        portfolioCount: Number(count),
+        isPopular: Number(count) > 5,
+        isNew: false
+      }));
     }
   });
 
-  // Load user's followed templates
   useEffect(() => {
     const loadFollowedTemplates = async () => {
       const { data: user } = await supabase.auth.getUser();
       
       if (user?.user) {
         try {
-          // Use execute_sql to get followed templates
           const { data, error } = await supabase.rpc('execute_sql', {
             sql_query: `
               SELECT template_id FROM template_followers
@@ -92,7 +71,6 @@ const TemplateGroups = () => {
     loadFollowedTemplates();
   }, []);
   
-  // Filter template groups based on search and category
   const filteredGroups = templateGroups?.filter(group => {
     const matchesSearch = !searchQuery || 
       group.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -105,9 +83,7 @@ const TemplateGroups = () => {
     return matchesSearch && matchesCategory;
   });
   
-  // Helper function to get template display name
   const getTemplateDisplayName = (templateId: string): string => {
-    // Convert template-id to Template Name
     return templateId
       .replace('premium-', 'Premium ')
       .split('-')
@@ -115,9 +91,7 @@ const TemplateGroups = () => {
       .join(' ');
   };
   
-  // Helper function to get template thumbnail
   const getTemplateThumbnail = (templateId: string): string => {
-    // In a real implementation, you would have a mapping of template IDs to thumbnail URLs
     const templateImages: Record<string, string> = {
       'minimal': '/minimal-template.png',
       'professional': '/professional-template.png',
@@ -130,7 +104,6 @@ const TemplateGroups = () => {
     return templateImages[templateId] || '/placeholder.svg';
   };
   
-  // Follow template function
   const handleFollowTemplate = async (templateId: string) => {
     const { data: user } = await supabase.auth.getUser();
     
@@ -148,7 +121,6 @@ const TemplateGroups = () => {
       const isFollowing = followedTemplates.includes(templateId);
       
       if (isFollowing) {
-        // Unfollow - delete the record using SQL
         const { error } = await supabase.rpc('execute_sql', {
           sql_query: `
             DELETE FROM template_followers
@@ -159,7 +131,6 @@ const TemplateGroups = () => {
         
         if (error) throw error;
         
-        // Update local state
         setFollowedTemplates(followedTemplates.filter(id => id !== templateId));
         
         toast({
@@ -167,7 +138,6 @@ const TemplateGroups = () => {
           description: "You will no longer receive updates for this template"
         });
       } else {
-        // Follow - insert a new record using SQL
         const { error } = await supabase.rpc('execute_sql', {
           sql_query: `
             INSERT INTO template_followers (user_id, template_id)
@@ -177,7 +147,6 @@ const TemplateGroups = () => {
         
         if (error) throw error;
         
-        // Update local state
         setFollowedTemplates([...followedTemplates, templateId]);
         
         toast({
@@ -206,7 +175,6 @@ const TemplateGroups = () => {
             Explore portfolios grouped by template. Each group showcases portfolios created with the same template.
           </p>
           
-          {/* Search and filter section */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -240,7 +208,6 @@ const TemplateGroups = () => {
             </div>
           </div>
           
-          {/* Template groups */}
           {isLoading ? (
             <div className="text-center py-12">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
