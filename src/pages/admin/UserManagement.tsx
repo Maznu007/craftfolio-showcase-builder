@@ -70,9 +70,8 @@ const UserManagement = () => {
           throw new Error(`User not found: ${userError.message}`);
         }
         
-        // Use the RPC call with explicit parameters
-        // We need to cast the boolean result to a string to avoid the "boolean > integer" error
-        const { data, error } = await supabase.rpc('delete_user', { 
+        // Call the RPC function without comparing the result
+        const { error } = await supabase.rpc('delete_user', { 
           user_id: userId 
         });
         
@@ -81,9 +80,8 @@ const UserManagement = () => {
           throw new Error(`Delete failed: ${error.message}`);
         }
         
-        // The Supabase function returns a boolean, but we'll just check if there was no error
-        // We won't check the data value to avoid the boolean comparison issue
-        return true;
+        // If no error occurred, consider it successful
+        return { success: true };
       } catch (error) {
         console.error('Error in deleteUserMutation try/catch:', error);
         throw error;
