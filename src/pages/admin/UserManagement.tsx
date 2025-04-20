@@ -55,15 +55,19 @@ const UserManagement = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
+      // First need to delete auth user via RPC function
+      const { error: rpcError } = await supabase
+        .rpc('delete_user', { user_id: userId });
+        
+      if (rpcError) throw rpcError;
       
-      if (error) throw error;
+      // The profile will be automatically deleted through the database trigger
+      // that watches for auth.users deletions
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      // Also invalidate the dashboard metrics
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-metrics'] });
       toast({
         title: "User deleted",
         description: "The user has been successfully removed.",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +7,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveCo
 import { supabase } from '@/integrations/supabase/client';
 import { Users, UserPlus, Crown, FileText, Activity, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 
 // Types for dashboard data
 interface DashboardMetrics {
@@ -28,59 +28,60 @@ interface RecentActivity {
 }
 
 const AdminDashboard = () => {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity | null>(null);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch dashboard metrics
-        const { data: metricsData, error: metricsError } = await supabase
-          .from('admin_dashboard_metrics')
-          .select('*')
-          .single();
-        
-        if (metricsError) throw metricsError;
-        
-        // Fetch recent portfolios (last 7 days)
-        const { data: recentPortfolios, error: portfoliosError } = await supabase
-          .from('portfolios')
-          .select('id, title, user_id, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        if (portfoliosError) throw portfoliosError;
-        
-        // Fetch active users count for last 7 days
-        const { data: activeUsersData, error: activeUsersError } = await supabase
-          .rpc('get_active_users_last_7_days');
-        
-        if (activeUsersError) throw activeUsersError;
-        
-        setMetrics(metricsData);
-        setRecentActivity({
-          active_users_7d: activeUsersData[0]?.count || 0,
-          recent_portfolios: recentPortfolios || []
-        });
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        toast({
-          variant: "destructive",
-          title: "Error loading dashboard data",
-          description: "There was a problem fetching the dashboard data.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Use react-query to fetch dashboard metrics
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['admin-dashboard-metrics'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_dashboard_metrics')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      return data as DashboardMetrics;
+    }
+  });
 
-    fetchDashboardData();
-  }, []);
+  // Use react-query for recent portfolios
+  const { data: recentPortfolios, isLoading: portfoliosLoading } = useQuery({
+    queryKey: ['admin-recent-portfolios'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select('id, title, user_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Use react-query for active users count
+  const { data: activeUsersData, isLoading: activeUsersLoading } = useQuery({
+    queryKey: ['admin-active-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_active_users_last_7_days');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Combine the recent activity data when all queries are complete
+  useEffect(() => {
+    if (recentPortfolios && activeUsersData) {
+      setRecentActivity({
+        active_users_7d: activeUsersData[0]?.count || 0,
+        recent_portfolios: recentPortfolios
+      });
+    }
+  }, [recentPortfolios, activeUsersData]);
 
   // Data for user type pie chart
   const getUserTypeData = () => {
@@ -95,12 +96,14 @@ const AdminDashboard = () => {
     ];
   };
 
+  const isLoading = metricsLoading || portfoliosLoading || activeUsersLoading;
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
         
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
               <span className="sr-only">Loading...</span>
