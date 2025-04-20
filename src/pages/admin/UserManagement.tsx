@@ -54,9 +54,19 @@ const UserManagement = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
+      console.log('Attempting to delete user:', userId);
       const { data, error } = await supabase.rpc('delete_user', { user_id: userId });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error from delete_user RPC:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.error('Delete operation returned no data or false');
+        throw new Error('User deletion failed');
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -68,12 +78,12 @@ const UserManagement = () => {
       });
     },
     onError: (error) => {
+      console.error('Error in deleteUserMutation:', error);
       toast({
         title: "Error",
         description: "Failed to delete user. Please try again.",
         variant: "destructive",
       });
-      console.error('Error deleting user:', error);
     },
   });
 
@@ -89,6 +99,7 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = (userId: string) => {
+    console.log('Delete user triggered for ID:', userId);
     deleteUserMutation.mutate(userId);
   };
 
@@ -97,6 +108,9 @@ const UserManagement = () => {
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">User Management</h1>
+          <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+            Total Users: {users?.length || 0}
+          </div>
         </div>
 
         {isLoading ? (

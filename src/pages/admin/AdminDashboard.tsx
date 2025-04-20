@@ -32,18 +32,24 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Use react-query to fetch dashboard metrics
+  // Use react-query to fetch dashboard metrics with staleTime set to 0 to ensure fresh data
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['admin-dashboard-metrics'],
     queryFn: async () => {
+      console.log('Fetching dashboard metrics');
       const { data, error } = await supabase
         .from('admin_dashboard_metrics')
         .select('*')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching dashboard metrics:', error);
+        throw error;
+      }
+      console.log('Dashboard metrics:', data);
       return data as DashboardMetrics;
-    }
+    },
+    staleTime: 0 // Always refetch to ensure fresh data
   });
 
   // Use react-query for recent portfolios
