@@ -265,6 +265,10 @@ export type Database = {
       }
     }
     Functions: {
+      delete_user: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       get_active_users_last_7_days: {
         Args: Record<PropertyKey, never>
         Returns: {

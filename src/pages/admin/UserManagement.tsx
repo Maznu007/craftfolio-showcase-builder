@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -55,18 +54,13 @@ const UserManagement = () => {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      // First need to delete auth user via RPC function
-      const { error: rpcError } = await supabase
-        .rpc('delete_user', { user_id: userId });
-        
-      if (rpcError) throw rpcError;
+      const { data, error } = await supabase.rpc('delete_user', { user_id: userId });
       
-      // The profile will be automatically deleted through the database trigger
-      // that watches for auth.users deletions
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      // Also invalidate the dashboard metrics
       queryClient.invalidateQueries({ queryKey: ['admin-dashboard-metrics'] });
       toast({
         title: "User deleted",
