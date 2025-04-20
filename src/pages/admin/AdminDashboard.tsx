@@ -53,7 +53,7 @@ const AdminDashboard = () => {
         .from('admin_dashboard_metrics')
         .select('*')
         .single();
-      
+        
       if (error) {
         console.error('Error fetching dashboard metrics:', error);
         throw error;
@@ -61,7 +61,7 @@ const AdminDashboard = () => {
       
       // Create a new metrics object with the accurate count
       const accurateMetrics = {
-        ...data,
+        ...(data || {}),
         total_users: profilesCount || 0
       } as DashboardMetrics;
       

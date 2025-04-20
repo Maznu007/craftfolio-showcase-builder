@@ -58,23 +58,40 @@ const UserManagement = () => {
     mutationFn: async (userId: string) => {
       console.log('Attempting to delete user:', userId);
       
-      // Use a direct RPC call with proper error handling
-      const { data, error } = await supabase.rpc('delete_user', { 
-        user_id: userId 
-      });
-      
-      if (error) {
-        console.error('Error from delete_user RPC:', error);
+      try {
+        // First verify the user exists
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+          
+        if (userError) {
+          console.error('Error verifying user exists:', userError);
+          throw new Error('User not found');
+        }
+        
+        // Use a direct RPC call with proper error handling
+        const { data, error } = await supabase.rpc('delete_user', { 
+          user_id: userId 
+        });
+        
+        if (error) {
+          console.error('Error from delete_user RPC:', error);
+          throw error;
+        }
+        
+        // Check if the deletion was successful
+        if (data !== true) {
+          console.error('Delete operation failed or returned false');
+          throw new Error('User deletion failed');
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error in deleteUserMutation try/catch:', error);
         throw error;
       }
-      
-      // Check if the deletion was successful
-      if (data !== true) {
-        console.error('Delete operation failed or returned false');
-        throw new Error('User deletion failed');
-      }
-      
-      return data;
     },
     onSuccess: () => {
       // Invalidate and refetch both admin users and dashboard metrics
