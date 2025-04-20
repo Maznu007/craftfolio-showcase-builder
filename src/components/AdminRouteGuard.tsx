@@ -36,15 +36,18 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           throw error;
         }
 
-        // Check if either the database check confirms admin status or the userType is admin
-        const isAdmin = data === true || userType === 'admin';
+        // Cast userType to string to avoid TypeScript error
+        // This allows us to safely compare with 'admin' string
+        const userTypeString = userType as string;
+        const isAdmin = data === true || userTypeString === 'admin';
         
         if (!isAdmin) {
           // Refresh user profile to make sure we have the latest data
           await refreshUserProfile();
           
-          // Check userType after refresh
-          if (userType !== 'admin') {
+          // Compare the refreshed userType with 'admin' string
+          const refreshedUserType = userType as string;
+          if (refreshedUserType !== 'admin') {
             toast({
               title: "Access denied",
               description: "You don't have permission to access the admin area",
@@ -84,8 +87,8 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
     );
   }
 
-  // Only render children if user exists and is an admin
-  if (!user || userType !== 'admin') {
+  // Cast userType to string to avoid TypeScript error when comparing with 'admin'
+  if (!user || (userType as string) !== 'admin') {
     return null;
   }
 
