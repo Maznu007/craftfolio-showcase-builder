@@ -35,14 +35,15 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           console.error("Error verifying admin status:", error);
           throw error;
         }
-        
+
+        // Check if either the database check confirms admin status or the userType is admin
         const isAdmin = data === true || userType === 'admin';
         
         if (!isAdmin) {
           // Refresh user profile to make sure we have the latest data
           await refreshUserProfile();
           
-          // Fixed type comparison by using comparison with string literal
+          // Check userType after refresh
           if (userType !== 'admin') {
             toast({
               title: "Access denied",
@@ -73,13 +74,17 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
   if (loading || isVerifying) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" role="status">
+        <div 
+          className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" 
+          role="status"
+        >
           <span className="sr-only">Loading...</span>
         </div>
       </div>
     );
   }
 
+  // Only render children if user exists and is an admin
   if (!user || userType !== 'admin') {
     return null;
   }
