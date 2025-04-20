@@ -58,6 +58,23 @@ export interface ServiceConnection {
   user_id: string;
 }
 
+export interface TemplateGroup {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string;
+  portfolioCount: number;
+  isPopular?: boolean;
+  isNew?: boolean;
+}
+
+export interface TemplateFollower {
+  id: string;
+  template_id: string;
+  user_id: string;
+  created_at: string;
+}
+
 // Helper function to safely parse portfolio content from JSON
 export function safeParsePortfolioContent(content: Json): PortfolioContent {
   if (typeof content === 'object' && content !== null) {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle, Globe, Link } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle, Globe, Link, FolderOpen } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -180,10 +180,16 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Portfolios</h1>
-            <Button onClick={handleCreatePortfolio}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create New Portfolio
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate('/template-groups')}>
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Template Groups
+              </Button>
+              <Button onClick={handleCreatePortfolio}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New Portfolio
+              </Button>
+            </div>
           </div>
           
           {loading ? (

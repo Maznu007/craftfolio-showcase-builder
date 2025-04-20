@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +16,8 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Templates from "./pages/Templates";
 import Community from "./pages/Community";
+import TemplateGroups from "./pages/TemplateGroups";
+import TemplateGroupDetail from "./pages/TemplateGroupDetail";
 
 // Admin Routes
 import Admin from "./pages/admin/Admin";
@@ -47,6 +50,8 @@ const App = () => {
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/templates" element={<Templates />} />
               <Route path="/community" element={<Community />} />
+              <Route path="/template-groups" element={<TemplateGroups />} />
+              <Route path="/template-groups/:templateId" element={<TemplateGroupDetail />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />
