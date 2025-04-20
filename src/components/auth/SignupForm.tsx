@@ -12,7 +12,7 @@ const SignupForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState(''); // Add display name
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,33 +43,12 @@ const SignupForm = () => {
       
       console.log("Signup response:", data);
       
-      // Manually create/update the profile record to ensure it exists
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: data.user.id,
-            email: email,
-            display_name: displayName || null,
-            user_type: 'free',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-          toast({
-            variant: "destructive",
-            title: "Profile creation failed",
-            description: profileError.message,
-          });
-        } else {
-          toast({
-            title: "Success!",
-            description: "Account created successfully. You are now logged in.",
-          });
-          navigate('/portfolio/create');
-        }
+        toast({
+          title: "Success!",
+          description: "Account created successfully. You are now logged in.",
+        });
+        navigate('/portfolio/create');
       } else {
         toast({
           title: "Success!",
