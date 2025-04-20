@@ -28,10 +28,11 @@ const UserManagement = () => {
       setLoading(true);
       
       console.log('Fetching all user profiles...');
-      // Get all profiles including user_type, not filtering by type
+      
+      // Get all profiles without any filtering
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, display_name, user_type, created_at, email');
+        .select('*');
       
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -39,6 +40,7 @@ const UserManagement = () => {
       }
       
       console.log('Fetched profiles:', profiles?.length || 0, 'profiles');
+      console.log('Profile data sample:', profiles?.[0]);
       
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found!');
@@ -60,8 +62,6 @@ const UserManagement = () => {
             console.error('Error counting portfolios for user', profile.id, ':', countError);
           }
           
-          // For last sign in, we can't directly access the auth.users table with this token,
-          // so we'll just use a placeholder or null for now
           return {
             ...profile,
             email: profile.email || 'User ' + profile.id.substring(0, 8),
@@ -76,6 +76,8 @@ const UserManagement = () => {
       );
       
       console.log('Processed users:', usersWithDetails.length, 'users with details');
+      console.log('User types in data:', usersWithDetails.map(u => u.user_type));
+      
       setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
