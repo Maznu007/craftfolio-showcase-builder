@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -11,20 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { User, X } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { User } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -36,9 +24,6 @@ interface UserData {
 }
 
 const UserManagement = () => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
@@ -53,59 +38,6 @@ const UserManagement = () => {
     staleTime: 0, // Always fetch fresh data
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      console.log('Attempting to delete user:', userId);
-      
-      try {
-        // First verify the user exists
-        const { data: userData, error: userError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', userId)
-          .single();
-          
-        if (userError) {
-          console.error('Error verifying user exists:', userError);
-          throw new Error(`User not found: ${userError.message}`);
-        }
-        
-        // Call the RPC function without comparing the result
-        const { error } = await supabase.rpc('delete_user', { 
-          user_id: userId 
-        });
-        
-        if (error) {
-          console.error('Error from delete_user RPC:', error);
-          throw new Error(`Delete failed: ${error.message}`);
-        }
-        
-        // If no error occurred, consider it successful
-        return { success: true };
-      } catch (error) {
-        console.error('Error in deleteUserMutation try/catch:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      // Invalidate and refetch both admin users and dashboard metrics
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-metrics'] });
-      toast({
-        title: "User deleted",
-        description: "The user has been successfully removed.",
-      });
-    },
-    onError: (error) => {
-      console.error('Error in deleteUserMutation:', error);
-      toast({
-        title: "Error",
-        description: `Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
-    },
-  });
-
   const getUserTypeColor = (userType: string) => {
     switch (userType.toLowerCase()) {
       case 'premium':
@@ -115,11 +47,6 @@ const UserManagement = () => {
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    console.log('Delete user triggered for ID:', userId);
-    deleteUserMutation.mutate(userId);
   };
 
   return (
@@ -148,7 +75,6 @@ const UserManagement = () => {
                   <TableHead>Account Type</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead>Last Updated</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -174,36 +100,6 @@ const UserManagement = () => {
                     <TableCell>
                       {new Date(user.updated_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="hover:bg-red-100 hover:text-red-500"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete User</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this user? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="bg-red-500 hover:bg-red-600"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -216,3 +112,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+
