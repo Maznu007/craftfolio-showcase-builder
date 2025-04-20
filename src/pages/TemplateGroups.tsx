@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { executeSql } from '@/utils/db-helpers';
-import { TemplateGroup, TemplateFollower } from '@/types/portfolio';
+import { TemplateGroup } from '@/types/portfolio';
 import { Search, Star, Users, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,24 +21,33 @@ const TemplateGroups = () => {
   const { data: templateGroups, isLoading, error } = useQuery({
     queryKey: ['templateGroups'],
     queryFn: async () => {
-      const portfolios = await executeSql<{ template_id: string, count: number }>(`
-        SELECT template_id, COUNT(*) as count
-        FROM portfolios
-        WHERE is_public = true
-        GROUP BY template_id
-      `);
-      
-      return portfolios.map(({ template_id, count }) => ({
-        id: template_id,
-        name: getTemplateDisplayName(template_id),
-        description: template_id.startsWith('premium-') 
-          ? 'Premium template with advanced features'
-          : 'Standard template for professional portfolios',
-        thumbnail: getTemplateThumbnail(template_id),
-        portfolioCount: Number(count),
-        isPopular: Number(count) > 5,
-        isNew: false
-      }));
+      try {
+        const portfolios = await executeSql<{ template_id: string, count: number }>(`
+          SELECT template_id, COUNT(*) as count
+          FROM portfolios
+          WHERE is_public = true
+          GROUP BY template_id
+        `);
+
+        if (!portfolios || !Array.isArray(portfolios)) {
+          throw new Error('Invalid response format from database');
+        }
+        
+        return portfolios.map(({ template_id, count }) => ({
+          id: template_id,
+          name: getTemplateDisplayName(template_id),
+          description: template_id.startsWith('premium-') 
+            ? 'Premium template with advanced features'
+            : 'Standard template for professional portfolios',
+          thumbnail: getTemplateThumbnail(template_id),
+          portfolioCount: Number(count),
+          isPopular: Number(count) > 5,
+          isNew: false
+        }));
+      } catch (err) {
+        console.error('Error fetching template groups:', err);
+        throw err;
+      }
     }
   });
 

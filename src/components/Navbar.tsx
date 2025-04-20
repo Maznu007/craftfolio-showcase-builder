@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck } from 'lucide-react';
@@ -167,13 +166,34 @@ const Navbar = () => {
             <span>Pricing</span>
           </button>
 
-          <button 
-            className="flex items-center space-x-1 nav-link cursor-pointer"
-            onClick={() => navigate('/community')}
-          >
-            <Users className="h-4 w-4" />
-            <span>Community</span>
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button 
+                className="flex items-center space-x-1 nav-link cursor-pointer"
+                onClick={() => navigate('/community')}
+              >
+                <Users className="h-4 w-4" />
+                <span>Community</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56">
+              <div className="grid gap-2">
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => navigate('/community')}
+                >
+                  Browse Portfolios
+                </button>
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => navigate('/template-groups')}
+                >
+                  Template Groups
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex items-center space-x-4">
