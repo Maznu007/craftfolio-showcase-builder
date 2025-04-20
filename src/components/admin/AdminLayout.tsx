@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
@@ -33,6 +34,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: LayoutDashboard,
       path: '/admin/dashboard',
       active: isActive('/admin/dashboard')
+    },
+    {
+      title: 'User Management',
+      icon: Users,
+      path: '/admin/users',
+      active: isActive('/admin/users')
     },
     {
       title: 'Portfolio Management',

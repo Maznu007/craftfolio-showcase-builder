@@ -252,6 +252,17 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_user_view: {
+        Row: {
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          id: string | null
+          updated_at: string | null
+          user_type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_active_users_last_7_days: {
