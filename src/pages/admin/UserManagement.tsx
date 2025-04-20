@@ -68,26 +68,26 @@ const UserManagement = () => {
           
         if (userError) {
           console.error('Error verifying user exists:', userError);
-          throw new Error('User not found');
+          throw new Error(`User not found: ${userError.message}`);
         }
         
-        // Use a direct RPC call with proper error handling
+        // Use the RPC call with explicit parameters
         const { data, error } = await supabase.rpc('delete_user', { 
           user_id: userId 
         });
         
         if (error) {
           console.error('Error from delete_user RPC:', error);
-          throw error;
+          throw new Error(`Delete failed: ${error.message}`);
         }
         
-        // Check if the deletion was successful
+        // Explicitly check if the deletion was successful
         if (data !== true) {
           console.error('Delete operation failed or returned false');
-          throw new Error('User deletion failed');
+          throw new Error('User deletion failed - operation returned false');
         }
         
-        return data;
+        return true;
       } catch (error) {
         console.error('Error in deleteUserMutation try/catch:', error);
         throw error;
