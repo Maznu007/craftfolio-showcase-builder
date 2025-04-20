@@ -33,8 +33,8 @@ const SignupForm = () => {
         password,
         options: {
           data: {
-            user_type: 'free',
-            display_name: displayName || null
+            display_name: displayName || email.split('@')[0],
+            user_type: 'free'
           }
         }
       });
@@ -44,6 +44,27 @@ const SignupForm = () => {
       console.log("Signup response:", data);
       
       if (data.user) {
+        // Explicitly create profile record to ensure it exists
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              email: email,
+              display_name: displayName || email.split('@')[0],
+              user_type: 'free',
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+            
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+            // Continue anyway, as the user was created successfully
+          }
+        } catch (profileErr) {
+          console.error("Profile creation exception:", profileErr);
+          // Continue anyway, as the user was created successfully
+        }
+        
         toast({
           title: "Success!",
           description: "Account created successfully. You are now logged in.",
@@ -60,7 +81,7 @@ const SignupForm = () => {
       toast({
         variant: "destructive",
         title: "Error signing up",
-        description: error.message,
+        description: error.message || "Failed to create account. Please try again.",
       });
     } finally {
       setLoading(false);
