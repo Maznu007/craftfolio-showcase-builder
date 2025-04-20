@@ -18,6 +18,7 @@ import Community from "./pages/Community";
 import TemplateGroups from "./pages/TemplateGroups";
 import TemplateGroupDetail from "./pages/TemplateGroupDetail";
 import HelpSupport from "./pages/HelpSupport";
+import AdminSupport from "./pages/AdminSupport";
 
 const queryClient = new QueryClient();
 
@@ -44,9 +45,9 @@ const App = () => {
               <Route path="/community" element={<Community />} />
               <Route path="/template-groups" element={<TemplateGroups />} />
               <Route path="/template-groups/:templateId" element={<TemplateGroupDetail />} />
+              <Route path="/admin/support" element={<AdminSupport />} />
               <Route path="/help-support" element={<HelpSupport />} />
               
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

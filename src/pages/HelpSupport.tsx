@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Send } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Message {
   id: string;
@@ -24,6 +25,8 @@ interface Ticket {
 
 const HelpSupport = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const adminTicketId = searchParams.get('ticket');
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -162,38 +165,63 @@ const HelpSupport = () => {
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-white rounded-lg shadow-lg min-h-[600px] flex flex-col">
-        <div className="p-4 border-b flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          <h1 className="text-xl font-semibold">Help & Support</h1>
+        <div className="p-4 border-b flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-500" />
+            <h1 className="text-xl font-semibold">Help & Support</h1>
+          </div>
+          {currentTicket?.status === 'closed' && (
+            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+              Closed
+            </span>
+          )}
         </div>
         
         <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.sender_id === user?.id
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100'
-                  }`}
-                >
-                  <p className="break-words">{message.message}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.sender_id === user?.id
-                      ? 'text-blue-100'
-                      : 'text-gray-500'
-                  }`}>
-                    {format(new Date(message.timestamp), 'MMM d, h:mm a')}
-                  </p>
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="flex gap-2">
+                  <Skeleton className="h-12 w-3/4" />
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>Start your conversation with our support team</p>
+                  <p className="text-sm">We typically reply within a few hours</p>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg p-3 ${
+                        message.sender_id === user?.id
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <p className="break-words">{message.message}</p>
+                      <p className={`text-xs mt-1 ${
+                        message.sender_id === user?.id
+                          ? 'text-blue-100'
+                          : 'text-gray-500'
+                      }`}>
+                        {format(new Date(message.timestamp), 'MMM d, h:mm a')}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </ScrollArea>
 
         <form onSubmit={handleSendMessage} className="p-4 border-t">
@@ -202,11 +230,16 @@ const HelpSupport = () => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1"
-              rows={2}
+              className="flex-1 min-h-[80px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
             />
-            <Button type="submit" disabled={!newMessage.trim()}>
-              Send
+            <Button type="submit" disabled={!newMessage.trim()} className="h-auto">
+              <Send className="h-5 w-5" />
             </Button>
           </div>
         </form>
