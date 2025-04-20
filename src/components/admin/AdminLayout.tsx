@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
@@ -36,12 +35,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       active: isActive('/admin/dashboard')
     },
     {
-      title: 'User Management',
-      icon: Users,
-      path: '/admin/users',
-      active: isActive('/admin/users')
-    },
-    {
       title: 'Portfolio Management',
       icon: FileText,
       path: '/admin/portfolios',
@@ -58,7 +51,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   return (
     <AdminRouteGuard>
       <div className="flex min-h-screen bg-gray-50">
-        {/* Sidebar Navigation */}
         <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200">
           <div className="p-6">
             <h1 className="text-xl font-bold">Admin Panel</h1>
@@ -105,7 +97,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </nav>
         </aside>
         
-        {/* Mobile Navigation Header */}
         <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-10">
           <div className="flex items-center justify-between p-4">
             <h1 className="text-xl font-bold">Admin Panel</h1>
@@ -134,7 +125,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         </div>
         
-        {/* Main Content */}
         <div className="flex-1">
           <div className="md:h-full md:overflow-y-auto md:pb-0 pt-24 md:pt-0">
             {children}
