@@ -12,6 +12,7 @@ const SignupForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState(''); // Add display name
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -26,14 +27,14 @@ const SignupForm = () => {
     try {
       console.log("Attempting signup with:", email);
       
-      // Sign up the user - we set user_type in the metadata 
-      // even though we have the profiles table as a backup
+      // Sign up the user with display name in the metadata
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            user_type: 'free' // Default to free user
+            user_type: 'free',
+            display_name: displayName || null
           }
         }
       });
@@ -42,12 +43,33 @@ const SignupForm = () => {
       
       console.log("Signup response:", data);
       
+      // Manually create/update the profile record to ensure it exists
       if (data.user) {
-        toast({
-          title: "Success!",
-          description: "Account created successfully. You are now logged in.",
-        });
-        navigate('/portfolio/create');
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email: email,
+            display_name: displayName || null,
+            user_type: 'free',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          toast({
+            variant: "destructive",
+            title: "Profile creation failed",
+            description: profileError.message,
+          });
+        } else {
+          toast({
+            title: "Success!",
+            description: "Account created successfully. You are now logged in.",
+          });
+          navigate('/portfolio/create');
+        }
       } else {
         toast({
           title: "Success!",
@@ -68,6 +90,17 @@ const SignupForm = () => {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="display-name">Display Name (Optional)</Label>
+        <Input 
+          id="display-name"
+          type="text" 
+          placeholder="Your Name" 
+          value={displayName} 
+          onChange={(e) => setDisplayName(e.target.value)} 
+        />
+      </div>
+      
       <div className="space-y-2">
         <Label htmlFor="signup-email">Email</Label>
         <Input 
