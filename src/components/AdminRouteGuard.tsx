@@ -42,6 +42,7 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           // Refresh user profile to make sure we have the latest data
           await refreshUserProfile();
           
+          // This is the line with the error - we need to fix the type comparison
           if (userType !== 'admin') {
             toast({
               title: "Access denied",
