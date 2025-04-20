@@ -36,14 +36,12 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           throw error;
         }
         
-        // Fallback to userType from context if rpc fails
         const isAdmin = data === true || userType === 'admin';
         
         if (!isAdmin) {
           // Refresh user profile to make sure we have the latest data
           await refreshUserProfile();
           
-          // If still not admin, redirect
           if (userType !== 'admin') {
             toast({
               title: "Access denied",
@@ -55,7 +53,6 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
         }
       } catch (error) {
         console.error("Admin verification error:", error);
-        // If we can't verify, rely on the context userType
         if (userType !== 'admin') {
           toast({
             title: "Access denied",

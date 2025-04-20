@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,58 +25,53 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
       console.log('Fetching all user profiles...');
-      
-      // Get all profiles without any filtering
+
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
-      
+
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         throw profilesError;
       }
-      
+
       console.log('Fetched profiles:', profiles?.length || 0, 'profiles');
       console.log('Profile data sample:', profiles?.[0]);
-      
+
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found!');
         setUsers([]);
         setLoading(false);
         return;
       }
-      
-      // For each profile, count portfolios and get additional data
+
       const usersWithDetails = await Promise.all(
         profiles.map(async (profile) => {
-          // Get portfolio count
           const { count: portfolioCount, error: countError } = await supabase
             .from('portfolios')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', profile.id);
-          
+
           if (countError) {
             console.error('Error counting portfolios for user', profile.id, ':', countError);
           }
-          
+
           return {
             ...profile,
             email: profile.email || 'User ' + profile.id.substring(0, 8),
-            last_sign_in_at: null, // We'll need admin access for this
+            last_sign_in_at: null,
             portfolio_count: portfolioCount || 0,
-            // Ensure user_type is normalized to one of the expected values
-            user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase())) 
+            user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase()))
               ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
               : 'free'
           };
         })
       );
-      
+
       console.log('Processed users:', usersWithDetails.length, 'users with details');
       console.log('User types in data:', usersWithDetails.map(u => u.user_type));
-      
+
       setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -94,22 +88,21 @@ const UserManagement = () => {
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
       const { data, error } = await supabase
-        .rpc('update_user_role', { 
-          user_id: userId, 
-          new_role: newRole 
+        .rpc('update_user_role', {
+          user_id: userId,
+          new_role: newRole
         });
-      
+
       if (error) throw error;
-      
-      // Update local state
-      setUsers(prev => 
-        prev.map(user => 
-          user.id === userId 
-            ? { ...user, user_type: newRole as 'free' | 'premium' | 'admin' } 
+
+      setUsers(prev =>
+        prev.map(user =>
+          user.id === userId
+            ? { ...user, user_type: newRole as 'free' | 'premium' | 'admin' }
             : user
         )
       );
-      
+
       toast({
         title: "User role updated",
         description: `User has been updated to ${newRole}`
@@ -127,18 +120,16 @@ const UserManagement = () => {
   const handleDeleteUser = async (userId: string) => {
     try {
       setIsDeleting(true);
-      
-      // Delete profile (this will cascade to other data thanks to RLS)
+
       const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
-      
+
       if (error) throw error;
-      
-      // Update local state by removing the deleted user
+
       setUsers(prev => prev.filter(user => user.id !== userId));
-      
+
       toast({
         title: "User deleted",
         description: "The user has been permanently deleted."
@@ -161,9 +152,9 @@ const UserManagement = () => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
         title: "Password reset email sent",
         description: "A password reset link has been sent to the user's email."
@@ -186,7 +177,7 @@ const UserManagement = () => {
 
   const confirmAction = () => {
     if (!actionUser || !actionType) return;
-    
+
     switch (actionType) {
       case 'make-admin':
         handleRoleChange(actionUser.id, 'admin');
@@ -206,24 +197,22 @@ const UserManagement = () => {
       default:
         break;
     }
-    
-    if (actionType !== 'delete') { // For delete, we close in the handleDeleteUser function
+
+    if (actionType !== 'delete') {
       setShowDialog(false);
     }
-    
+
     setActionUser(null);
     setActionType(null);
   };
 
   const filteredUsers = users.filter(user => {
-    // Apply search filter
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (user.display_name && user.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    // Apply role filter
+
     const matchesRole = !filterRole || user.user_type === filterRole;
-    
+
     return matchesSearch && matchesRole;
   });
 
