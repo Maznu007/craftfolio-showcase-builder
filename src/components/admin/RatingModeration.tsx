@@ -22,9 +22,9 @@ const RatingModeration = () => {
   const { data: ratings, isLoading, refetch } = useQuery({
     queryKey: ['admin-ratings'],
     queryFn: async () => {
-      // Using raw SQL query to get ratings with user and item information
-      const { data, error } = await supabase
-        .rpc('execute_sql', { 
+      try {
+        // Using raw SQL query to get ratings with user and item information
+        const { data, error } = await supabase.rpc('execute_sql', { 
           sql_query: `
             SELECT r.*, p.display_name, 
             CASE
@@ -38,37 +38,54 @@ const RatingModeration = () => {
           `
         });
 
-      if (error) {
-        console.error('Error fetching ratings:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching ratings:', error);
+          throw error;
+        }
+        
+        return data as Rating[];
+      } catch (error) {
+        console.error('Error in query:', error);
+        return [] as Rating[];
       }
-      
-      return data as Rating[];
     },
   });
 
   const handleDeleteRating = async (id: string) => {
-    // Raw SQL approach to update the rating
-    const { error } = await supabase
-      .rpc('execute_sql', { 
-        sql_query: `UPDATE ratings SET is_deleted = true WHERE id = '${id}' RETURNING id`
+    try {
+      // Raw SQL approach to update the rating
+      const { data, error } = await supabase.rpc('execute_sql', { 
+        sql_query: `
+          UPDATE ratings 
+          SET is_deleted = true 
+          WHERE id = '${id}' 
+          RETURNING id
+        `
       });
 
-    if (error) {
-      console.error('Error deleting rating:', error);
+      if (error) {
+        console.error('Error deleting rating:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete rating",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Rating has been deleted",
+      });
+      refetch();
+    } catch (error) {
+      console.error('Error in delete:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete rating",
+        description: "An unexpected error occurred",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Rating has been deleted",
-    });
-    refetch();
   };
 
   if (isLoading) {
@@ -81,7 +98,7 @@ const RatingModeration = () => {
 
   return (
     <div className="space-y-4">
-      {ratings?.map((rating: Rating) => (
+      {(ratings || []).map((rating: Rating) => (
         <Card key={rating.id}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">

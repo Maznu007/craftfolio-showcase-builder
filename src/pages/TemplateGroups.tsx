@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
-import { TemplateGroup } from '@/types/portfolio';
+import { TemplateGroup, TemplateFollower } from '@/types/portfolio';
 import { Search, Star, Users, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -16,6 +16,7 @@ const TemplateGroups = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
+  const [followedTemplates, setFollowedTemplates] = useState<string[]>([]);
   
   // Fetch template groups
   const { data: templateGroups, isLoading, error } = useQuery({
@@ -58,6 +59,38 @@ const TemplateGroups = () => {
       return groups.sort((a, b) => b.portfolioCount - a.portfolioCount);
     }
   });
+
+  // Load user's followed templates
+  useEffect(() => {
+    const loadFollowedTemplates = async () => {
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (user?.user) {
+        try {
+          // Use execute_sql to get followed templates
+          const { data, error } = await supabase.rpc('execute_sql', {
+            sql_query: `
+              SELECT template_id FROM template_followers
+              WHERE user_id = '${user.user.id}'
+            `
+          });
+          
+          if (error) {
+            console.error("Error fetching followed templates:", error);
+            return;
+          }
+          
+          if (data && Array.isArray(data)) {
+            setFollowedTemplates(data.map(item => item.template_id));
+          }
+        } catch (error) {
+          console.error("Error in followed templates query:", error);
+        }
+      }
+    };
+    
+    loadFollowedTemplates();
+  }, []);
   
   // Filter template groups based on search and category
   const filteredGroups = templateGroups?.filter(group => {
@@ -112,33 +145,40 @@ const TemplateGroups = () => {
     }
     
     try {
-      // Check if already following
-      const { data: existingFollow } = await supabase
-        .from('template_followers')
-        .select('*')
-        .eq('user_id', user.user.id)
-        .eq('template_id', templateId)
-        .single();
+      const isFollowing = followedTemplates.includes(templateId);
       
-      if (existingFollow) {
-        // Unfollow
-        await supabase
-          .from('template_followers')
-          .delete()
-          .eq('id', existingFollow.id);
+      if (isFollowing) {
+        // Unfollow - delete the record using SQL
+        const { error } = await supabase.rpc('execute_sql', {
+          sql_query: `
+            DELETE FROM template_followers
+            WHERE user_id = '${user.user.id}'
+            AND template_id = '${templateId}'
+          `
+        });
+        
+        if (error) throw error;
+        
+        // Update local state
+        setFollowedTemplates(followedTemplates.filter(id => id !== templateId));
         
         toast({
           title: "Template unfollowed",
           description: "You will no longer receive updates for this template"
         });
       } else {
-        // Follow
-        await supabase
-          .from('template_followers')
-          .insert({
-            user_id: user.user.id,
-            template_id: templateId
-          });
+        // Follow - insert a new record using SQL
+        const { error } = await supabase.rpc('execute_sql', {
+          sql_query: `
+            INSERT INTO template_followers (user_id, template_id)
+            VALUES ('${user.user.id}', '${templateId}')
+          `
+        });
+        
+        if (error) throw error;
+        
+        // Update local state
+        setFollowedTemplates([...followedTemplates, templateId]);
         
         toast({
           title: "Template followed",
@@ -258,9 +298,12 @@ const TemplateGroups = () => {
                   </CardContent>
                   
                   <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => handleFollowTemplate(group.id)}>
+                    <Button 
+                      variant={followedTemplates.includes(group.id) ? "default" : "outline"} 
+                      onClick={() => handleFollowTemplate(group.id)}
+                    >
                       <Star className="h-4 w-4 mr-1" />
-                      Follow Template
+                      {followedTemplates.includes(group.id) ? 'Following' : 'Follow Template'}
                     </Button>
                     <Button onClick={() => navigate(`/template-groups/${group.id}`)}>
                       View Group
