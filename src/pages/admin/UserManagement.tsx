@@ -37,7 +37,6 @@ const UserManagement = () => {
       }
 
       console.log('Fetched profiles:', profiles?.length || 0, 'profiles');
-      console.log('Profile data sample:', profiles?.[0]);
 
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found!');
@@ -46,32 +45,17 @@ const UserManagement = () => {
         return;
       }
 
-      const usersWithDetails = await Promise.all(
-        profiles.map(async (profile) => {
-          const { count: portfolioCount, error: countError } = await supabase
-            .from('portfolios')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', profile.id);
-
-          if (countError) {
-            console.error('Error counting portfolios for user', profile.id, ':', countError);
-          }
-
-          return {
-            ...profile,
-            email: profile.email || 'User ' + profile.id.substring(0, 8),
-            last_sign_in_at: null,
-            portfolio_count: portfolioCount || 0,
-            user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase()))
-              ? profile.user_type.toLowerCase() as 'free' | 'premium' | 'admin'
-              : 'free'
-          };
-        })
-      );
+      const usersWithDetails = profiles.map(profile => ({
+        ...profile,
+        email: profile.email || 'User ' + profile.id.substring(0, 8),
+        last_sign_in_at: null,
+        portfolio_count: 0,
+        user_type: (profile.user_type && ['free', 'premium', 'admin'].includes(profile.user_type.toLowerCase()))
+          ? profile.user_type.toLowerCase()
+          : 'free'
+      }));
 
       console.log('Processed users:', usersWithDetails.length, 'users with details');
-      console.log('User types in data:', usersWithDetails.map(u => u.user_type));
-
       setUsers(usersWithDetails as UserData[]);
     } catch (error) {
       console.error('Error fetching users:', error);
