@@ -12,6 +12,15 @@ import { Search, Star, Users, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface PortfolioCount {
+  template_id: string;
+  count: number | string;
+}
+
+interface TemplateFollower {
+  template_id: string;
+}
+
 const TemplateGroups = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,14 +31,17 @@ const TemplateGroups = () => {
     queryKey: ['templateGroups'],
     queryFn: async () => {
       try {
-        const portfolios = await executeSql<{ template_id: string, count: number }>(`
+        const query = `
           SELECT template_id, COUNT(*) as count
           FROM portfolios
           WHERE is_public = true
           GROUP BY template_id
-        `);
+        `;
+        
+        const portfolios = await executeSql<PortfolioCount>(query);
 
         if (!portfolios || !Array.isArray(portfolios)) {
+          console.error('Invalid response format from database', portfolios);
           throw new Error('Invalid response format from database');
         }
         
@@ -40,8 +52,8 @@ const TemplateGroups = () => {
             ? 'Premium template with advanced features'
             : 'Standard template for professional portfolios',
           thumbnail: getTemplateThumbnail(template_id),
-          portfolioCount: Number(count),
-          isPopular: Number(count) > 5,
+          portfolioCount: typeof count === 'string' ? parseInt(count, 10) : count,
+          isPopular: (typeof count === 'string' ? parseInt(count, 10) : count) > 5,
           isNew: false
         }));
       } catch (err) {
@@ -57,10 +69,12 @@ const TemplateGroups = () => {
       
       if (user?.user) {
         try {
-          const followed = await executeSql<{ template_id: string }>(`
+          const query = `
             SELECT template_id FROM template_followers
             WHERE user_id = '${user.user.id}'
-          `);
+          `;
+          
+          const followed = await executeSql<TemplateFollower>(query);
           
           if (followed && Array.isArray(followed)) {
             setFollowedTemplates(followed.map(item => item.template_id));

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle, Globe, Link, FolderOpen } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, DownloadCloud, AlertTriangle, Globe, Link } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -51,7 +50,6 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Transform and parse the portfolio content
       const parsedPortfolios = (data || []).map(p => ({
         ...p,
         content: safeParsePortfolioContent(p.content)
@@ -75,7 +73,6 @@ const Dashboard = () => {
   };
 
   const handleEditPortfolio = (portfolioId: string) => {
-    // Store the portfolio ID in localStorage for the edit page to pick up
     localStorage.setItem('editPortfolioId', portfolioId);
     navigate('/portfolio/create');
   };
@@ -124,7 +121,6 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Update local state to reflect the change
       setPortfolios(prevPortfolios => 
         prevPortfolios.map(p => 
           p.id === portfolioId ? { ...p, is_public: newState } : p
@@ -148,7 +144,6 @@ const Dashboard = () => {
   };
 
   const copyPublicLink = (portfolioId: string) => {
-    // Create a shareable link - in production this would be your actual domain
     const link = `${window.location.origin}/portfolio/view/${portfolioId}`;
     navigator.clipboard.writeText(link).then(() => {
       setLinkCopied(portfolioId);
@@ -157,7 +152,6 @@ const Dashboard = () => {
         description: "Portfolio link copied to clipboard"
       });
       
-      // Reset the copied state after 2 seconds
       setTimeout(() => {
         setLinkCopied(null);
       }, 2000);
@@ -169,7 +163,7 @@ const Dashboard = () => {
   };
 
   if (!user) {
-    return null; // Don't render anything while redirecting
+    return null;
   }
 
   return (
@@ -180,16 +174,10 @@ const Dashboard = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">My Portfolios</h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/template-groups')}>
-                <FolderOpen className="mr-2 h-4 w-4" />
-                Template Groups
-              </Button>
-              <Button onClick={handleCreatePortfolio}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create New Portfolio
-              </Button>
-            </div>
+            <Button onClick={handleCreatePortfolio}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create New Portfolio
+            </Button>
           </div>
           
           {loading ? (
@@ -241,7 +229,6 @@ const Dashboard = () => {
                       Template: <span className="font-medium capitalize">{portfolio.template_id.replace('-', ' ')}</span>
                     </div>
                     
-                    {/* Share to Community Toggle */}
                     <div className="border-t mt-4 pt-4">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-1">
@@ -254,7 +241,6 @@ const Dashboard = () => {
                         />
                       </div>
                       
-                      {/* Copy Link Button - Only show if portfolio is public */}
                       {portfolio.is_public && (
                         <Button 
                           variant="outline" 
@@ -311,7 +297,6 @@ const Dashboard = () => {
         </div>
       </footer>
       
-      {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletePortfolioId} onOpenChange={() => setDeletePortfolioId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -331,7 +316,6 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Portfolio View Modal */}
       {viewPortfolio && (
         <PortfolioView 
           portfolio={viewPortfolio} 
