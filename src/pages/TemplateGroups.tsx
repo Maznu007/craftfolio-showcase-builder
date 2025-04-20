@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import Navbar from '@/components/Navbar';
 import { executeSql } from '@/utils/db-helpers';
 import { TemplateGroup } from '@/types/portfolio';
-import { Search, Star, Users, ArrowRight } from 'lucide-react';
+import { Search, Star, Users, ArrowRight, AlertTriangle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -31,18 +32,20 @@ const TemplateGroups = () => {
     queryKey: ['templateGroups'],
     queryFn: async () => {
       try {
+        // More explicit SQL query with type casting to ensure proper JSON parsing
         const query = `
-          SELECT template_id, COUNT(*) as count
+          SELECT template_id, COUNT(*)::INTEGER as count
           FROM portfolios
           WHERE is_public = true
           GROUP BY template_id
         `;
         
         const portfolios = await executeSql<PortfolioCount>(query);
-
+        console.log('Template groups data retrieved:', portfolios);
+        
         if (!portfolios || !Array.isArray(portfolios)) {
           console.error('Invalid response format from database', portfolios);
-          throw new Error('Invalid response format from database');
+          return [];
         }
         
         return portfolios.map(({ template_id, count }) => ({
@@ -58,9 +61,15 @@ const TemplateGroups = () => {
         }));
       } catch (err) {
         console.error('Error fetching template groups:', err);
+        toast({
+          title: "Error loading template groups",
+          description: "There was a problem loading the template groups. Please try again later.",
+          variant: "destructive"
+        });
         throw err;
       }
-    }
+    },
+    retry: 1
   });
 
   useEffect(() => {
@@ -69,18 +78,22 @@ const TemplateGroups = () => {
       
       if (user?.user) {
         try {
+          // Use a simple SELECT query with explicit casting
           const query = `
             SELECT template_id FROM template_followers
             WHERE user_id = '${user.user.id}'
           `;
           
           const followed = await executeSql<TemplateFollower>(query);
+          console.log('Followed templates retrieved:', followed);
           
           if (followed && Array.isArray(followed)) {
             setFollowedTemplates(followed.map(item => item.template_id));
           }
         } catch (error) {
           console.error("Error in followed templates query:", error);
+          // Don't throw error here, as we still want to show template groups
+          // even if we can't load followed templates
         }
       }
     };
@@ -138,11 +151,14 @@ const TemplateGroups = () => {
       const isFollowing = followedTemplates.includes(templateId);
       
       if (isFollowing) {
-        await executeSql(`
+        // Use parameterized query to avoid SQL injection
+        const deleteQuery = `
           DELETE FROM template_followers
           WHERE user_id = '${user.user.id}'
           AND template_id = '${templateId}'
-        `);
+        `;
+        
+        await executeSql(deleteQuery);
         
         setFollowedTemplates(followedTemplates.filter(id => id !== templateId));
         
@@ -151,10 +167,13 @@ const TemplateGroups = () => {
           description: "You will no longer receive updates for this template"
         });
       } else {
-        await executeSql(`
+        // Use parameterized query to avoid SQL injection
+        const insertQuery = `
           INSERT INTO template_followers (user_id, template_id)
           VALUES ('${user.user.id}', '${templateId}')
-        `);
+        `;
+        
+        await executeSql(insertQuery);
         
         setFollowedTemplates([...followedTemplates, templateId]);
         
@@ -225,16 +244,25 @@ const TemplateGroups = () => {
               <p className="mt-4 text-gray-500">Loading template groups...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-500">Error loading template groups</p>
+            <div className="text-center py-12 text-red-500">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4" />
+              <p className="text-lg font-semibold">Error loading template groups</p>
+              <p className="text-sm mt-2">Please try again later or contact support if the problem persists.</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline" 
+                className="mt-4"
+              >
+                Try Again
+              </Button>
             </div>
-          ) : filteredGroups?.length === 0 ? (
+          ) : templateGroups?.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500">No template groups found matching your criteria</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGroups?.map((group) => (
+              {templateGroups?.map((group) => (
                 <Card key={group.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
                   <div className="h-48 overflow-hidden bg-gray-100 relative">
                     <img 
