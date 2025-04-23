@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AdminRouteGuard from '@/components/AdminRouteGuard';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, Users, FileText, AlertTriangle, 
-  Settings, LogOut, ChevronLeft
+  Settings, LogOut, ChevronLeft, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -52,6 +51,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: AlertTriangle,
       path: '/admin/reports',
       active: isActive('/admin/reports')
+    },
+    {
+      title: 'Support Chat',
+      icon: MessageSquare,
+      path: '/admin/support',
+      active: isActive('/admin/support')
     }
   ];
 

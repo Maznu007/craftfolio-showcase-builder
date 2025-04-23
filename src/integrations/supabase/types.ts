@@ -9,6 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "admin_user_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -169,6 +222,86 @@ export type Database = {
         }
         Relationships: []
       }
+      support_messages: {
+        Row: {
+          id: string
+          message: string
+          sender_id: string
+          ticket_id: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          sender_id: string
+          ticket_id: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          sender_id?: string
+          ticket_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          id: string
+          last_updated: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      template_followers: {
+        Row: {
+          created_at: string
+          id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_connections: {
         Row: {
           access_token: string
@@ -263,11 +396,23 @@ export type Database = {
         }
         Relationships: []
       }
+      template_usage_stats: {
+        Row: {
+          portfolio_count: number | null
+          template_id: string | null
+          unique_user_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_user: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      execute_sql: {
+        Args: { sql_query: string }
+        Returns: Json
       }
       get_active_users_last_7_days: {
         Args: Record<PropertyKey, never>
