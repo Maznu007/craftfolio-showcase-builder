@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
@@ -15,6 +15,7 @@ interface Message {
   sender_id: string;
   message: string;
   timestamp: string;
+  ticket_id: string;
 }
 
 interface SupportTicket {
@@ -34,6 +35,7 @@ export const AdminSupportChat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchTickets();
@@ -82,6 +84,11 @@ export const AdminSupportChat = () => {
       };
     }
   }, [selectedTicket]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const fetchTickets = async () => {
     try {
@@ -134,7 +141,8 @@ export const AdminSupportChat = () => {
           .from('support_tickets')
           .update({ 
             admin_id: user.id,
-            status: 'in_progress'
+            status: 'in_progress',
+            last_updated: new Date().toISOString()
           })
           .eq('id', selectedTicket.id);
 
@@ -147,31 +155,65 @@ export const AdminSupportChat = () => {
         setSelectedTicket({
           ...selectedTicket,
           admin_id: user.id,
-          status: 'in_progress'
+          status: 'in_progress',
+          last_updated: new Date().toISOString()
         });
+        
+        // Also update the ticket in the tickets list
+        setTickets(tickets.map(ticket => 
+          ticket.id === selectedTicket.id 
+            ? {
+                ...ticket,
+                admin_id: user.id,
+                status: 'in_progress',
+                last_updated: new Date().toISOString()
+              } 
+            : ticket
+        ));
       }
 
       // Now send the message
-      const { error } = await supabase
+      const timestamp = new Date().toISOString();
+      const { data, error } = await supabase
         .from('support_messages')
         .insert([{
           ticket_id: selectedTicket.id,
           sender_id: user.id,
-          message: newMessage.trim()
-        }]);
+          message: newMessage.trim(),
+          timestamp: timestamp
+        }])
+        .select();
 
       if (error) throw error;
       
+      // Add the new message to the local state
+      if (data && data[0]) {
+        setMessages(prev => [...prev, data[0] as Message]);
+      }
+      
       // Update the ticket's last_updated timestamp manually
-      // This is in case the trigger doesn't fire properly
       const { error: timestampError } = await supabase
         .from('support_tickets')
-        .update({ last_updated: new Date().toISOString() })
+        .update({ last_updated: timestamp })
         .eq('id', selectedTicket.id);
         
-      if (timestampError) console.error('Error updating timestamp:', timestampError);
+      if (timestampError) {
+        console.error('Error updating timestamp:', timestampError);
+        // Continue execution even if this fails as it's not critical
+      } else {
+        // Also update local state for tickets list
+        setTickets(tickets.map(ticket => 
+          ticket.id === selectedTicket.id 
+            ? { ...ticket, last_updated: timestamp } 
+            : ticket
+        ));
+      }
 
       setNewMessage('');
+      toast({
+        title: "Message sent",
+        description: "Your reply has been sent"
+      });
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -188,17 +230,30 @@ export const AdminSupportChat = () => {
     if (!selectedTicket) return;
 
     try {
+      const timestamp = new Date().toISOString();
       const { error } = await supabase
         .from('support_tickets')
-        .update({ status: 'closed' })
+        .update({ 
+          status: 'closed',
+          last_updated: timestamp 
+        })
         .eq('id', selectedTicket.id);
 
       if (error) throw error;
       
+      // Update local states
       setSelectedTicket({
         ...selectedTicket,
-        status: 'closed'
+        status: 'closed',
+        last_updated: timestamp
       });
+      
+      // Update in tickets list as well
+      setTickets(tickets.map(ticket => 
+        ticket.id === selectedTicket.id 
+          ? { ...ticket, status: 'closed', last_updated: timestamp } 
+          : ticket
+      ));
       
       toast({
         title: "Ticket closed",
@@ -253,7 +308,7 @@ export const AdminSupportChat = () => {
                         : 'outline'
                     }
                   >
-                    {ticket.status}
+                    {ticket.status.replace('_', ' ')}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -316,6 +371,7 @@ export const AdminSupportChat = () => {
                     </div>
                   ))
                 )}
+                <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
