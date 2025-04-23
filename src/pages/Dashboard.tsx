@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -50,6 +51,7 @@ const Dashboard = () => {
 
       if (error) throw error;
 
+      // Transform and parse the portfolio content
       const parsedPortfolios = (data || []).map(p => ({
         ...p,
         content: safeParsePortfolioContent(p.content)
@@ -73,6 +75,7 @@ const Dashboard = () => {
   };
 
   const handleEditPortfolio = (portfolioId: string) => {
+    // Store the portfolio ID in localStorage for the edit page to pick up
     localStorage.setItem('editPortfolioId', portfolioId);
     navigate('/portfolio/create');
   };
@@ -121,6 +124,7 @@ const Dashboard = () => {
 
       if (error) throw error;
 
+      // Update local state to reflect the change
       setPortfolios(prevPortfolios => 
         prevPortfolios.map(p => 
           p.id === portfolioId ? { ...p, is_public: newState } : p
@@ -144,6 +148,7 @@ const Dashboard = () => {
   };
 
   const copyPublicLink = (portfolioId: string) => {
+    // Create a shareable link - in production this would be your actual domain
     const link = `${window.location.origin}/portfolio/view/${portfolioId}`;
     navigator.clipboard.writeText(link).then(() => {
       setLinkCopied(portfolioId);
@@ -152,6 +157,7 @@ const Dashboard = () => {
         description: "Portfolio link copied to clipboard"
       });
       
+      // Reset the copied state after 2 seconds
       setTimeout(() => {
         setLinkCopied(null);
       }, 2000);
@@ -163,7 +169,7 @@ const Dashboard = () => {
   };
 
   if (!user) {
-    return null;
+    return null; // Don't render anything while redirecting
   }
 
   return (
@@ -229,6 +235,7 @@ const Dashboard = () => {
                       Template: <span className="font-medium capitalize">{portfolio.template_id.replace('-', ' ')}</span>
                     </div>
                     
+                    {/* Share to Community Toggle */}
                     <div className="border-t mt-4 pt-4">
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-1">
@@ -241,6 +248,7 @@ const Dashboard = () => {
                         />
                       </div>
                       
+                      {/* Copy Link Button - Only show if portfolio is public */}
                       {portfolio.is_public && (
                         <Button 
                           variant="outline" 
@@ -297,6 +305,7 @@ const Dashboard = () => {
         </div>
       </footer>
       
+      {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletePortfolioId} onOpenChange={() => setDeletePortfolioId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -316,6 +325,7 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
       
+      {/* Portfolio View Modal */}
       {viewPortfolio && (
         <PortfolioView 
           portfolio={viewPortfolio} 

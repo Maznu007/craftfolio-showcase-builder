@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { executeSql } from '@/utils/db-helpers';
 
 interface Rating {
   id: string;
@@ -20,41 +21,54 @@ interface Rating {
 const RatingModeration = () => {
   const { data: ratings, isLoading, refetch } = useQuery({
     queryKey: ['admin-ratings'],
-    queryFn: () => executeSql<Rating>(`
-      SELECT r.*, p.display_name, 
-      CASE
-        WHEN r.item_type = 'portfolio' THEN (SELECT title FROM portfolios WHERE id = r.item_id::uuid)
-        ELSE 'Unknown Item'
-      END as item_title
-      FROM ratings r
-      LEFT JOIN profiles p ON p.id = r.user_id
-      WHERE r.is_deleted = false
-      ORDER BY r.created_at DESC
-    `),
+    queryFn: async () => {
+      // Using raw SQL query to get ratings with user and item information
+      const { data, error } = await supabase
+        .rpc('execute_sql', { 
+          sql_query: `
+            SELECT r.*, p.display_name, 
+            CASE
+              WHEN r.item_type = 'portfolio' THEN (SELECT title FROM portfolios WHERE id = r.item_id::uuid)
+              ELSE 'Unknown Item'
+            END as item_title
+            FROM ratings r
+            LEFT JOIN profiles p ON p.id = r.user_id
+            WHERE r.is_deleted = false
+            ORDER BY r.created_at DESC
+          `
+        });
+
+      if (error) {
+        console.error('Error fetching ratings:', error);
+        throw error;
+      }
+      
+      return data as Rating[];
+    },
   });
 
   const handleDeleteRating = async (id: string) => {
-    try {
-      await executeSql(`
-        UPDATE ratings 
-        SET is_deleted = true 
-        WHERE id = '${id}' 
-        RETURNING id
-      `);
-
-      toast({
-        title: "Success",
-        description: "Rating has been deleted",
+    // Raw SQL approach to update the rating
+    const { error } = await supabase
+      .rpc('execute_sql', { 
+        sql_query: `UPDATE ratings SET is_deleted = true WHERE id = '${id}' RETURNING id`
       });
-      refetch();
-    } catch (error) {
-      console.error('Error in delete:', error);
+
+    if (error) {
+      console.error('Error deleting rating:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "Failed to delete rating",
       });
+      return;
     }
+
+    toast({
+      title: "Success",
+      description: "Rating has been deleted",
+    });
+    refetch();
   };
 
   if (isLoading) {
@@ -67,7 +81,7 @@ const RatingModeration = () => {
 
   return (
     <div className="space-y-4">
-      {(ratings || []).map((rating: Rating) => (
+      {ratings?.map((rating: Rating) => (
         <Card key={rating.id}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,9 +15,14 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Templates from "./pages/Templates";
 import Community from "./pages/Community";
-import TemplateGroups from "./pages/TemplateGroups";
-import TemplateGroupDetail from "./pages/TemplateGroupDetail";
-import HelpSupport from "./pages/HelpSupport";
+
+// Admin Routes
+import Admin from "./pages/admin/Admin";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserManagement from "./pages/admin/UserManagement";
+import PortfolioManagement from "./pages/admin/PortfolioManagement";
+import ReportedContent from "./pages/admin/ReportedContent";
 
 const queryClient = new QueryClient();
 
@@ -43,9 +47,16 @@ const App = () => {
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/templates" element={<Templates />} />
               <Route path="/community" element={<Community />} />
-              <Route path="/template-groups" element={<TemplateGroups />} />
-              <Route path="/template-groups/:templateId" element={<TemplateGroupDetail />} />
-              <Route path="/help-support" element={<HelpSupport />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/portfolios" element={<PortfolioManagement />} />
+              <Route path="/admin/reports" element={<ReportedContent />} />
+              
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
