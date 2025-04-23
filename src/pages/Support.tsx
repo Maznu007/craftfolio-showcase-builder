@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,10 +8,17 @@ import { toast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const Support = () => {
   const { user } = useAuth();
   const [message, setMessage] = useState('');
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch tickets (open and closed) for the current user
@@ -57,6 +63,30 @@ const Support = () => {
       }));
     },
     enabled: !!activeTicket?.id,
+  });
+
+  // Fetch messages for the selected ticket
+  const { data: selectedTicketMessages = [] } = useQuery({
+    queryKey: ['support-messages', selectedTicketId],
+    queryFn: async () => {
+      if (!selectedTicketId) return [];
+      
+      const { data: messageData, error: messageError } = await supabase
+        .from('support_messages')
+        .select('*, profiles!inner(display_name)')
+        .eq('ticket_id', selectedTicketId)
+        .order('timestamp', { ascending: true });
+
+      if (messageError) throw messageError;
+
+      return messageData.map(msg => ({
+        ...msg,
+        senderName: msg.sender_id === user?.id 
+          ? 'You' 
+          : msg.profiles.display_name || 'Support'
+      }));
+    },
+    enabled: !!selectedTicketId,
   });
 
   // Create new ticket mutation
@@ -143,7 +173,10 @@ const Support = () => {
               {tickets.map((ticket) => (
                 <div 
                   key={ticket.id} 
-                  className="flex items-center justify-between bg-muted/30 p-3 rounded-lg"
+                  className={`flex items-center justify-between bg-muted/30 p-3 rounded-lg ${
+                    ticket.status === 'closed' ? 'cursor-pointer hover:bg-muted/50' : ''
+                  }`}
+                  onClick={() => ticket.status === 'closed' && setSelectedTicketId(ticket.id)}
                 >
                   <div>
                     <span className="font-medium">
@@ -159,23 +192,24 @@ const Support = () => {
                       {ticket.status}
                     </Badge>
                   </div>
+                  {ticket.status === 'closed' && (
+                    <Button variant="ghost" size="sm">
+                      View History
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Active Ticket Chat Area */}
-          <div className="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto p-4 bg-muted/30 rounded-lg">
-            {!activeTicket ? (
-              <div className="text-center text-muted-foreground py-8">
-                Start a conversation with our support team
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No messages yet
-              </div>
-            ) : (
-              messages.map((msg) => (
+          {/* Active Chat Section */}
+          {!activeTicket ? (
+            <div className="text-center text-muted-foreground py-8">
+              Start a conversation with our support team
+            </div>
+          ) : (
+            <div className="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto p-4 bg-muted/30 rounded-lg">
+              {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
@@ -187,18 +221,16 @@ const Support = () => {
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm font-medium mb-1">
-                      {msg.senderName}
-                    </p>
+                    <p className="text-sm font-medium mb-1">{msg.senderName}</p>
                     <p className="text-sm">{msg.message}</p>
                   </div>
                   <span className="text-xs text-muted-foreground mt-1">
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
 
         <CardFooter>
@@ -229,6 +261,37 @@ const Support = () => {
           )}
         </CardFooter>
       </Card>
+
+      {/* Conversation History Dialog */}
+      <Dialog open={!!selectedTicketId} onOpenChange={() => setSelectedTicketId(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Conversation History</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {selectedTicketMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    msg.sender_id === user?.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  }`}
+                >
+                  <p className="text-sm font-medium mb-1">{msg.senderName}</p>
+                  <p className="text-sm">{msg.message}</p>
+                </div>
+                <span className="text-xs text-muted-foreground mt-1">
+                  {new Date(msg.timestamp).toLocaleTimeString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
