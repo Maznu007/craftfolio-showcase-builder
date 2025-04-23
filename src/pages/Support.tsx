@@ -50,18 +50,31 @@ const Support = () => {
       
       const { data: messageData, error: messageError } = await supabase
         .from('support_messages')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('ticket_id', activeTicket.id)
         .order('timestamp', { ascending: true });
 
       if (messageError) throw messageError;
+      
+      // Get sender profiles in a separate query
+      const senderIds = messageData.map(msg => msg.sender_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', senderIds);
+      
+      if (profilesError) throw profilesError;
 
-      return messageData.map(msg => ({
-        ...msg,
-        senderName: msg.sender_id === user?.id 
-          ? 'You' 
-          : msg.profiles?.display_name || 'Support'
-      }));
+      // Map messages with sender information
+      return messageData.map(msg => {
+        const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
+        return {
+          ...msg,
+          senderName: msg.sender_id === user?.id 
+            ? 'You' 
+            : senderProfile?.display_name || 'Support'
+        };
+      });
     },
     enabled: !!activeTicket?.id,
   });
@@ -74,18 +87,31 @@ const Support = () => {
       
       const { data: messageData, error: messageError } = await supabase
         .from('support_messages')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('ticket_id', selectedTicketId)
         .order('timestamp', { ascending: true });
 
       if (messageError) throw messageError;
+      
+      // Get sender profiles in a separate query
+      const senderIds = messageData.map(msg => msg.sender_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', senderIds);
+      
+      if (profilesError) throw profilesError;
 
-      return messageData.map(msg => ({
-        ...msg,
-        senderName: msg.sender_id === user?.id 
-          ? 'You' 
-          : msg.profiles?.display_name || 'Support'
-      }));
+      // Map messages with sender information
+      return messageData.map(msg => {
+        const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
+        return {
+          ...msg,
+          senderName: msg.sender_id === user?.id 
+            ? 'You' 
+            : senderProfile?.display_name || 'Support'
+        };
+      });
     },
     enabled: !!selectedTicketId,
   });
@@ -149,6 +175,10 @@ const Support = () => {
     await sendMessage.mutate(message);
   };
 
+  const handleViewHistory = (ticketId: string) => {
+    setSelectedTicketId(ticketId);
+  };
+
   if (ticketLoading) {
     return <div className="flex items-center justify-center p-8">Loading...</div>;
   }
@@ -174,10 +204,8 @@ const Support = () => {
               {tickets.map((ticket) => (
                 <div 
                   key={ticket.id} 
-                  className={`flex items-center justify-between bg-muted/30 p-3 rounded-lg ${
-                    ticket.status === 'closed' ? 'cursor-pointer hover:bg-muted/50' : ''
-                  }`}
-                  onClick={() => ticket.status === 'closed' && setSelectedTicketId(ticket.id)}
+                  className="flex items-center justify-between bg-muted/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleViewHistory(ticket.id)}
                 >
                   <div>
                     <span className="font-medium">
@@ -193,11 +221,9 @@ const Support = () => {
                       {ticket.status}
                     </Badge>
                   </div>
-                  {ticket.status === 'closed' && (
-                    <Button variant="ghost" size="sm">
-                      View History
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="sm">
+                    View History
+                  </Button>
                 </div>
               ))}
             </div>
