@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck } from 'lucide-react';
+import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck, HelpCircle } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
@@ -124,6 +123,10 @@ const Navbar = () => {
     }
   };
 
+  const handleSupportAction = () => {
+    navigate('/support');
+  };
+
   return (
     <div className="w-full bg-craftfolio-gray py-4">
       <div className="container mx-auto px-4 flex items-center justify-between">
@@ -173,6 +176,14 @@ const Navbar = () => {
           >
             <Users className="h-4 w-4" />
             <span>Community</span>
+          </button>
+
+          <button 
+            className="flex items-center space-x-1 nav-link cursor-pointer"
+            onClick={handleSupportAction}
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span>Support</span>
           </button>
         </div>
 
