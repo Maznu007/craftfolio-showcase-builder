@@ -124,6 +124,30 @@ const SupportChat = () => {
     enabled: !!selectedTicket,
   });
 
+  // Assign admin to ticket mutation
+  const assignTicket = useMutation({
+    mutationFn: async () => {
+      if (!selectedTicket || !user) return;
+
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ 
+          admin_id: user.id,
+          status: 'in_progress'
+        })
+        .eq('id', selectedTicket);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      toast({
+        title: "Ticket assigned",
+        description: "You have been assigned to this support ticket.",
+      });
+    },
+  });
+
   // Send message mutation
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
@@ -263,7 +287,16 @@ const SupportChat = () => {
             <CardFooter>
               {selectedTicket && (
                 <form onSubmit={handleSendMessage} className="w-full space-y-2">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => assignTicket.mutate()}
+                      disabled={assignTicket.isPending}
+                    >
+                      Assign to Me
+                    </Button>
                     <Button
                       type="button"
                       variant="destructive"
