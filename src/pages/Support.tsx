@@ -36,14 +36,34 @@ const Support = () => {
     queryFn: async () => {
       if (!activeTicket?.id) return [];
       
-      const { data, error } = await supabase
+      // Changed to use two separate queries to avoid relation errors
+      const { data: messageData, error: messageError } = await supabase
         .from('support_messages')
-        .select('*, profiles:sender_id(display_name)')
+        .select('*')
         .eq('ticket_id', activeTicket.id)
         .order('timestamp', { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (messageError) throw messageError;
+
+      // Get display names for senders
+      const senderIds = messageData.map(msg => msg.sender_id);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', senderIds);
+
+      if (profileError) throw profileError;
+
+      // Merge profile data with messages
+      const messagesWithProfiles = messageData.map(msg => {
+        const profile = profileData.find(p => p.id === msg.sender_id);
+        return {
+          ...msg,
+          senderName: profile?.display_name || 'Unknown'
+        };
+      });
+
+      return messagesWithProfiles;
     },
     enabled: !!activeTicket?.id,
   });
@@ -136,7 +156,7 @@ const Support = () => {
                     }`}
                   >
                     <p className="text-sm font-medium mb-1">
-                      {msg.sender_id === user?.id ? 'You' : msg.profiles?.display_name || 'Support'}
+                      {msg.sender_id === user?.id ? 'You' : msg.senderName || 'Support'}
                     </p>
                     <p className="text-sm">{msg.message}</p>
                   </div>

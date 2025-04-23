@@ -17,29 +17,72 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+type UserInfo = {
+  id: string;
+  email?: string;
+  displayName?: string;
+}
+
+type TicketWithUser = {
+  id: string;
+  user_id: string;
+  admin_id: string | null;
+  status: string;
+  created_at: string;
+  last_updated: string;
+  userInfo?: UserInfo;
+}
+
+type MessageWithSender = {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  message: string;
+  timestamp: string;
+  senderName?: string;
+}
+
 const SupportChat = () => {
   const { user } = useAuth();
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const queryClient = useQueryClient();
 
-  // Fetch all tickets
+  // Fetch all tickets and include user information
   const { data: tickets = [] } = useQuery({
     queryKey: ['support-tickets'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all tickets
+      const { data: ticketsData, error: ticketsError } = await supabase
         .from('support_tickets')
-        .select(`
-          *,
-          user:user_id(
-            email,
-            profiles:profiles(display_name)
-          )
-        `)
+        .select('*')
         .order('last_updated', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (ticketsError) throw ticketsError;
+
+      // Get user information for all tickets
+      const userIds = ticketsData.map(ticket => ticket.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name, email')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge ticket data with user information
+      const ticketsWithUserInfo: TicketWithUser[] = ticketsData.map(ticket => {
+        const userProfile = profilesData.find(profile => profile.id === ticket.user_id);
+        return {
+          ...ticket,
+          userInfo: {
+            id: ticket.user_id,
+            email: userProfile?.email,
+            displayName: userProfile?.display_name
+          }
+        };
+      });
+
+      return ticketsWithUserInfo;
     },
   });
 
@@ -49,14 +92,34 @@ const SupportChat = () => {
     queryFn: async () => {
       if (!selectedTicket) return [];
       
-      const { data, error } = await supabase
+      // Get messages for the selected ticket
+      const { data: messagesData, error: messagesError } = await supabase
         .from('support_messages')
-        .select('*, profiles:sender_id(display_name)')
+        .select('*')
         .eq('ticket_id', selectedTicket)
         .order('timestamp', { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (messagesError) throw messagesError;
+
+      // Get profiles for all senders
+      const senderIds = messagesData.map(message => message.sender_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', senderIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge message data with sender information
+      const messagesWithSenders: MessageWithSender[] = messagesData.map(message => {
+        const senderProfile = profilesData.find(profile => profile.id === message.sender_id);
+        return {
+          ...message,
+          senderName: senderProfile?.display_name || 'Unknown'
+        };
+      });
+
+      return messagesWithSenders;
     },
     enabled: !!selectedTicket,
   });
@@ -129,7 +192,7 @@ const SupportChat = () => {
                   {tickets.map((ticket) => (
                     <TableRow key={ticket.id}>
                       <TableCell>
-                        {ticket.user?.profiles?.display_name || ticket.user?.email}
+                        {ticket.userInfo?.displayName || ticket.userInfo?.email || 'Unknown User'}
                       </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
@@ -185,7 +248,7 @@ const SupportChat = () => {
                         }`}
                       >
                         <p className="text-sm font-medium mb-1">
-                          {msg.sender_id === user?.id ? 'You (Support)' : msg.profiles?.display_name || 'User'}
+                          {msg.sender_id === user?.id ? 'You (Support)' : msg.senderName || 'User'}
                         </p>
                         <p className="text-sm">{msg.message}</p>
                       </div>
