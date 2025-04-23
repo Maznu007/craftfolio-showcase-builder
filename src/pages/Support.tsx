@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,7 +74,7 @@ const Support = () => {
       
       const { data: messageData, error: messageError } = await supabase
         .from('support_messages')
-        .select('*, profiles!inner(display_name)')
+        .select('*, profiles(display_name)')
         .eq('ticket_id', selectedTicketId)
         .order('timestamp', { ascending: true });
 
@@ -83,7 +84,7 @@ const Support = () => {
         ...msg,
         senderName: msg.sender_id === user?.id 
           ? 'You' 
-          : msg.profiles.display_name || 'Support'
+          : msg.profiles?.display_name || 'Support'
       }));
     },
     enabled: !!selectedTicketId,
