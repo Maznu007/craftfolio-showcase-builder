@@ -128,8 +128,8 @@ export const AdminSupportChat = () => {
 
     setSending(true);
     try {
-      // First, assign the admin to the ticket if not already assigned
-      if (!selectedTicket.admin_id) {
+      // First, update the ticket status if needed
+      if (!selectedTicket.admin_id || selectedTicket.status === 'open') {
         const { error: updateError } = await supabase
           .from('support_tickets')
           .update({ 
@@ -138,7 +138,10 @@ export const AdminSupportChat = () => {
           })
           .eq('id', selectedTicket.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating ticket:', updateError);
+          throw updateError;
+        }
         
         // Update local state
         setSelectedTicket({
@@ -148,7 +151,7 @@ export const AdminSupportChat = () => {
         });
       }
 
-      // Send the message
+      // Now send the message
       const { error } = await supabase
         .from('support_messages')
         .insert([{
@@ -158,6 +161,16 @@ export const AdminSupportChat = () => {
         }]);
 
       if (error) throw error;
+      
+      // Update the ticket's last_updated timestamp manually
+      // This is in case the trigger doesn't fire properly
+      const { error: timestampError } = await supabase
+        .from('support_tickets')
+        .update({ last_updated: new Date().toISOString() })
+        .eq('id', selectedTicket.id);
+        
+      if (timestampError) console.error('Error updating timestamp:', timestampError);
+
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -216,33 +229,39 @@ export const AdminSupportChat = () => {
           <h3 className="font-semibold">Support Tickets</h3>
         </div>
         <ScrollArea className="flex-1">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                selectedTicket?.id === ticket.id ? 'bg-gray-50' : ''
-              }`}
-              onClick={() => setSelectedTicket(ticket)}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Ticket #{ticket.id.slice(0, 8)}</span>
-                <Badge
-                  variant={
-                    ticket.status === 'open'
-                      ? 'default'
-                      : ticket.status === 'in_progress'
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                >
-                  {ticket.status}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Last updated: {new Date(ticket.last_updated).toLocaleString()}
-              </p>
+          {tickets.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">
+              No support tickets found
             </div>
-          ))}
+          ) : (
+            tickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
+                  selectedTicket?.id === ticket.id ? 'bg-gray-50' : ''
+                }`}
+                onClick={() => setSelectedTicket(ticket)}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Ticket #{ticket.id.slice(0, 8)}</span>
+                  <Badge
+                    variant={
+                      ticket.status === 'open'
+                        ? 'default'
+                        : ticket.status === 'in_progress'
+                        ? 'secondary'
+                        : 'outline'
+                    }
+                  >
+                    {ticket.status}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Last updated: {new Date(ticket.last_updated).toLocaleString()}
+                </p>
+              </div>
+            ))
+          )}
         </ScrollArea>
       </Card>
 
@@ -270,27 +289,33 @@ export const AdminSupportChat = () => {
 
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
+                {messages.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No messages yet
+                  </div>
+                ) : (
+                  messages.map((msg) => (
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.sender_id === user?.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
+                      key={msg.id}
+                      className={`flex ${
+                        msg.sender_id === user?.id ? 'justify-end' : 'justify-start'
                       }`}
                     >
-                      <p className="text-sm">{msg.message}</p>
-                      <span className="text-xs opacity-70">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </span>
+                      <div
+                        className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                          msg.sender_id === user?.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                        }`}
+                      >
+                        <p className="text-sm">{msg.message}</p>
+                        <span className="text-xs opacity-70">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </ScrollArea>
 
