@@ -1,8 +1,7 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Ban, Flag, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle, X, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,189 +11,311 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import RatingModeration from '@/components/admin/RatingModeration';
 
-interface ReportedContent {
-  id: string;
-  content_type: string;
-  content_id: string;
-  reason: string;
-  status: string;
-  reported_at: string;
-  reported_by_name: string;
-  reported_by: string;
-  content_preview: string;
-}
+// Mock data for demonstration
+const mockReportedPortfolios = [
+  {
+    id: 'port-1',
+    title: 'Developer Portfolio with Offensive Content',
+    userDisplayName: 'User123',
+    reportCount: 3,
+    reportReasons: ['Inappropriate content', 'Offensive language'],
+    reportDate: '2023-08-15T12:30:00Z',
+    status: 'pending'
+  },
+  {
+    id: 'port-2',
+    title: 'Graphic Design Portfolio with Copyright Issues',
+    userDisplayName: 'DesignerA',
+    reportCount: 2,
+    reportReasons: ['Copyright violation', 'Stolen work'],
+    reportDate: '2023-08-10T09:15:00Z',
+    status: 'pending'
+  }
+];
+
+const mockReportedComments = [
+  {
+    id: 'comm-1',
+    portfolioTitle: 'Web Development Portfolio',
+    userDisplayName: 'Commenter456',
+    content: 'This comment contains inappropriate language that violated community standards.',
+    reportCount: 1,
+    reportReasons: ['Harassment'],
+    reportDate: '2023-08-14T14:45:00Z',
+    status: 'pending'
+  }
+];
+
+type ReportStatus = 'pending' | 'resolved' | 'ignored';
 
 const ReportedContent = () => {
-  const [selectedReport, setSelectedReport] = React.useState<ReportedContent | null>(null);
-  const [modalOpen, setModalOpen] = React.useState(false);
-
-  const { data: reports, isLoading, refetch } = useQuery({
-    queryKey: ['admin-reports'],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('execute_sql', {
-        sql_query: 'SELECT * FROM admin_reported_content ORDER BY reported_at DESC'
-      });
-
-      if (error) {
-        console.error('Error fetching reports:', error);
-        throw error;
+  const [portfolios, setPortfolios] = useState(mockReportedPortfolios);
+  const [comments, setComments] = useState(mockReportedComments);
+  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
+  
+  const handlePortfolioAction = (id: string, action: 'resolve' | 'ignore' | 'delete') => {
+    setPortfolios(prev => prev.map(item => {
+      if (item.id === id) {
+        const newStatus = action === 'delete' ? 'resolved' : action === 'resolve' ? 'resolved' : 'ignored';
+        return { ...item, status: newStatus };
       }
-      
-      return data as unknown as ReportedContent[];
-    },
-  });
-
-  const handleBanUser = async (userId: string) => {
-    console.log(`Banning user: ${userId}`);
-    setModalOpen(false);
+      return item;
+    }));
+    
+    const actionText = action === 'delete' ? 'deleted' : action === 'resolve' ? 'resolved' : 'ignored';
+    
+    toast({
+      title: `Report ${actionText}`,
+      description: `The reported portfolio has been ${actionText}.`
+    });
   };
-
-  const handleWarnUser = async (userId: string) => {
-    console.log(`Warning user: ${userId}`);
-    setModalOpen(false);
+  
+  const handleCommentAction = (id: string, action: 'resolve' | 'ignore' | 'delete') => {
+    setComments(prev => prev.map(item => {
+      if (item.id === id) {
+        const newStatus = action === 'delete' ? 'resolved' : action === 'resolve' ? 'resolved' : 'ignored';
+        return { ...item, status: newStatus };
+      }
+      return item;
+    }));
+    
+    const actionText = action === 'delete' ? 'deleted' : action === 'resolve' ? 'resolved' : 'ignored';
+    
+    toast({
+      title: `Report ${actionText}`,
+      description: `The reported comment has been ${actionText}.`
+    });
   };
-
-  const handleMarkReviewed = async (reportId: string) => {
-    console.log(`Marking report as reviewed: ${reportId}`);
-    setModalOpen(false);
-  };
-
-  const getStatusBadge = (status: string) => {
+  
+  const filteredPortfolios = portfolios.filter(item => 
+    statusFilter === 'all' || item.status === statusFilter
+  );
+  
+  const filteredComments = comments.filter(item => 
+    statusFilter === 'all' || item.status === statusFilter
+  );
+  
+  const getStatusBadge = (status: ReportStatus) => {
     switch (status) {
-      case 'open':
-        return <Badge variant="outline">Open</Badge>;
       case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
       case 'resolved':
-        return <Badge variant="default">Resolved</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Resolved</Badge>;
+      case 'ignored':
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Ignored</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return null;
     }
   };
-
+  
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Reported Content</h1>
-
-        <Tabs defaultValue="reports" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="reports">User Reports</TabsTrigger>
-            <TabsTrigger value="ratings">Rating Moderation</TabsTrigger>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Reported Content</h1>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                {statusFilter === 'all' ? 'All Reports' : 
+                 statusFilter === 'pending' ? 'Pending' : 
+                 statusFilter === 'resolved' ? 'Resolved' : 'Ignored'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                All Reports
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('pending')}>
+                Pending
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('resolved')}>
+                Resolved
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('ignored')}>
+                Ignored
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <Tabs defaultValue="portfolios" className="mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="portfolios" className="flex items-center">
+              Portfolios
+              {portfolios.filter(p => p.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {portfolios.filter(p => p.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="comments" className="flex items-center">
+              Comments
+              {comments.filter(c => c.status === 'pending').length > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {comments.filter(c => c.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="reports" className="space-y-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          
+          <TabsContent value="portfolios">
+            {filteredPortfolios.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No reported portfolios matching the current filter
               </div>
             ) : (
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {reports?.map((report) => (
-                  <Card key={report.id} className="bg-white shadow-md rounded-md overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">{report.reason}</CardTitle>
-                      {getStatusBadge(report.status)}
+              <div className="space-y-4">
+                {filteredPortfolios.map(report => (
+                  <Card key={report.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-medium">{report.title}</CardTitle>
+                          <CardDescription>By {report.userDisplayName}</CardDescription>
+                        </div>
+                        {getStatusBadge(report.status as ReportStatus)}
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <CardDescription>
-                        Reported by {report.reported_by_name} on {new Date(report.reported_at).toLocaleDateString()}
-                      </CardDescription>
-                      <p className="text-sm text-gray-500 mt-2">Content preview: {report.content_preview}</p>
-                      <div className="flex justify-end mt-4">
-                        <Button size="sm" onClick={() => {
-                          setSelectedReport(report);
-                          setModalOpen(true);
-                        }}>
-                          View Details
-                        </Button>
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Report Details</h4>
+                          <p className="text-sm mt-1">Reported {report.reportCount} times</p>
+                          <p className="text-sm mt-1">Reported on {new Date(report.reportDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Reasons</h4>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {report.reportReasons.map((reason, index) => (
+                              <Badge key={index} variant="secondary">{reason}</Badge>
+                            ))}
+                          </div>
+                        </div>
                       </div>
+                      
+                      {report.status === 'pending' && (
+                        <div className="flex justify-end gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'ignore')}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Ignore
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'resolve')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                            Resolve
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handlePortfolioAction(report.id, 'delete')}
+                          >
+                            Delete Portfolio
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
             )}
           </TabsContent>
-          <TabsContent value="ratings">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Ratings</CardTitle>
-                <CardDescription>Moderate user ratings and comments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RatingModeration />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Report Details Modal */}
-        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Report Details</DialogTitle>
-              {selectedReport && (
-                <DialogDescription>
-                  Details for report on {selectedReport.content_type} by {selectedReport.reported_by_name}
-                </DialogDescription>
-              )}
-            </DialogHeader>
-            {selectedReport && (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right font-medium">Content Type</div>
-                  <div className="col-span-3">{selectedReport.content_type}</div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right font-medium">Reason</div>
-                  <div className="col-span-3">{selectedReport.reason}</div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right font-medium">Reported At</div>
-                  <div className="col-span-3">{new Date(selectedReport.reported_at).toLocaleDateString()}</div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right font-medium">Status</div>
-                  <div className="col-span-3">{getStatusBadge(selectedReport.status)}</div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <div className="text-right font-medium">Actions</div>
-                  <div className="col-span-3 flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleBanUser(selectedReport.reported_by)}>
-                      <Ban className="h-4 w-4 mr-2" />
-                      Ban User
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleWarnUser(selectedReport.reported_by)}>
-                      <Flag className="h-4 w-4 mr-2" />
-                      Warn User
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleMarkReviewed(selectedReport.id)}>
-                      <ShieldCheck className="h-4 w-4 mr-2" />
-                      Mark as Reviewed
-                    </Button>
-                  </div>
-                </div>
+          
+          <TabsContent value="comments">
+            {filteredComments.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No reported comments matching the current filter
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredComments.map(report => (
+                  <Card key={report.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg font-medium">Comment on "{report.portfolioTitle}"</CardTitle>
+                          <CardDescription>By {report.userDisplayName}</CardDescription>
+                        </div>
+                        {getStatusBadge(report.status as ReportStatus)}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-gray-50 p-3 rounded-md border mb-4">
+                        <p className="text-sm italic">"{report.content}"</p>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Report Details</h4>
+                          <p className="text-sm mt-1">Reported {report.reportCount} times</p>
+                          <p className="text-sm mt-1">Reported on {new Date(report.reportDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground">Reasons</h4>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {report.reportReasons.map((reason, index) => (
+                              <Badge key={index} variant="secondary">{reason}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {report.status === 'pending' && (
+                        <div className="flex justify-end gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'ignore')}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Ignore
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'resolve')}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                            Resolve
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleCommentAction(report.id, 'delete')}
+                          >
+                            Delete Comment
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
-          </DialogContent>
-        </Dialog>
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

@@ -12,7 +12,6 @@ const SignupForm = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -27,14 +26,14 @@ const SignupForm = () => {
     try {
       console.log("Attempting signup with:", email);
       
-      // Sign up the user with display name in the metadata
+      // Sign up the user - we set user_type in the metadata 
+      // even though we have the profiles table as a backup
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            display_name: displayName || email.split('@')[0],
-            user_type: 'free'
+            user_type: 'free' // Default to free user
           }
         }
       });
@@ -44,27 +43,6 @@ const SignupForm = () => {
       console.log("Signup response:", data);
       
       if (data.user) {
-        // Explicitly create profile record to ensure it exists
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: email,
-              display_name: displayName || email.split('@')[0],
-              user_type: 'free',
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-            
-          if (profileError) {
-            console.error("Error creating profile:", profileError);
-            // Continue anyway, as the user was created successfully
-          }
-        } catch (profileErr) {
-          console.error("Profile creation exception:", profileErr);
-          // Continue anyway, as the user was created successfully
-        }
-        
         toast({
           title: "Success!",
           description: "Account created successfully. You are now logged in.",
@@ -81,7 +59,7 @@ const SignupForm = () => {
       toast({
         variant: "destructive",
         title: "Error signing up",
-        description: error.message || "Failed to create account. Please try again.",
+        description: error.message,
       });
     } finally {
       setLoading(false);
@@ -90,17 +68,6 @@ const SignupForm = () => {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="display-name">Display Name (Optional)</Label>
-        <Input 
-          id="display-name"
-          type="text" 
-          placeholder="Your Name" 
-          value={displayName} 
-          onChange={(e) => setDisplayName(e.target.value)} 
-        />
-      </div>
-      
       <div className="space-y-2">
         <Label htmlFor="signup-email">Email</Label>
         <Input 

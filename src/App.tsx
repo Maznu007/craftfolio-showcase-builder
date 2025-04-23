@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,8 +15,8 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Templates from "./pages/Templates";
 import Community from "./pages/Community";
-import Support from "./pages/Support";
-import AdminSupportChat from "./pages/admin/AdminSupportChat";
+
+// Admin Routes
 import Admin from "./pages/admin/Admin";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -48,7 +47,6 @@ const App = () => {
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/templates" element={<Templates />} />
               <Route path="/community" element={<Community />} />
-              <Route path="/support" element={<Support />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />
@@ -57,7 +55,6 @@ const App = () => {
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/portfolios" element={<PortfolioManagement />} />
               <Route path="/admin/reports" element={<ReportedContent />} />
-              <Route path="/admin/support" element={<AdminSupportChat />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
