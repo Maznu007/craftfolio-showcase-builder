@@ -43,7 +43,8 @@ const RatingModeration = () => {
         throw error;
       }
       
-      return data as Rating[];
+      // Fix the type casting issue by explicitly casting to Rating[]
+      return data as unknown as Rating[];
     },
   });
 
