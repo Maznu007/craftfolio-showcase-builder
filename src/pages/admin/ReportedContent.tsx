@@ -47,7 +47,6 @@ const ReportedContent = () => {
   const { data: reports, isLoading, refetch } = useQuery({
     queryKey: ['admin-reports'],
     queryFn: async () => {
-      // Using raw SQL to fetch the view data
       const { data, error } = await supabase.rpc('execute_sql', {
         sql_query: 'SELECT * FROM admin_reported_content ORDER BY reported_at DESC'
       });
@@ -57,25 +56,21 @@ const ReportedContent = () => {
         throw error;
       }
       
-      // Fix the type casting issue by explicitly casting to ReportedContent[]
       return data as unknown as ReportedContent[];
     },
   });
 
   const handleBanUser = async (userId: string) => {
-    // Implement ban user logic here
     console.log(`Banning user: ${userId}`);
     setModalOpen(false);
   };
 
   const handleWarnUser = async (userId: string) => {
-    // Implement warn user logic here
     console.log(`Warning user: ${userId}`);
     setModalOpen(false);
   };
 
   const handleMarkReviewed = async (reportId: string) => {
-    // Implement mark as reviewed logic here
     console.log(`Marking report as reviewed: ${reportId}`);
     setModalOpen(false);
   };
@@ -87,11 +82,11 @@ const ReportedContent = () => {
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
       case 'resolved':
-        return <Badge variant="success">Resolved</Badge>;
+        return <Badge variant="default">Resolved</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
