@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, Users, FileText, AlertTriangle, 
-  Settings, LogOut, ChevronLeft
+  Settings, LogOut, ChevronLeft, MessageCircle 
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -46,6 +46,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: FileText,
       path: '/admin/portfolios',
       active: isActive('/admin/portfolios')
+    },
+    {
+      title: 'Support',
+      icon: MessageCircle,
+      path: '/admin/support',
+      active: isActive('/admin/support')
     },
     {
       title: 'Reported Content',
