@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -157,6 +157,12 @@ const Support = () => {
         }]);
 
       if (error) throw error;
+
+      // Update the last_updated timestamp for the ticket
+      await supabase
+        .from('support_tickets')
+        .update({ last_updated: new Date().toISOString() })
+        .eq('id', activeTicket?.id);
     },
     onSuccess: () => {
       setMessage('');
@@ -168,6 +174,36 @@ const Support = () => {
       });
     },
   });
+
+  // Check for new notifications on messages
+  useEffect(() => {
+    const channel = supabase
+      .channel('support-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+          filter: activeTicket ? `ticket_id=eq.${activeTicket.id}` : undefined,
+        },
+        (payload) => {
+          if (payload.new && payload.new.sender_id !== user?.id) {
+            queryClient.invalidateQueries({ queryKey: ['support-messages', activeTicket?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-support-tickets'] });
+            toast({
+              title: "New support message",
+              description: "You have received a new reply from support.",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeTicket?.id, queryClient, user?.id]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

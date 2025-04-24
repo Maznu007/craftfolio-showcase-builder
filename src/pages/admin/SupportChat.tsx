@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -124,6 +124,63 @@ const SupportChat = () => {
     enabled: !!selectedTicket,
   });
 
+  // Listen for new messages in current ticket
+  useEffect(() => {
+    if (!selectedTicket) return;
+
+    const channel = supabase
+      .channel('admin-support-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_messages',
+          filter: `ticket_id=eq.${selectedTicket}`,
+        },
+        (payload) => {
+          if (payload.new && payload.new.sender_id !== user?.id) {
+            queryClient.invalidateQueries({ queryKey: ['support-messages', selectedTicket] });
+            toast({
+              title: "New message",
+              description: "A user has sent a new message in the ticket.",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedTicket, queryClient, user?.id]);
+
+  // Listen for new tickets
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-new-ticket-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'support_tickets',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+          toast({
+            title: "New support ticket",
+            description: "A new support ticket has been created.",
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Assign admin to ticket mutation
   const assignTicket = useMutation({
     mutationFn: async () => {
@@ -133,7 +190,8 @@ const SupportChat = () => {
         .from('support_tickets')
         .update({ 
           admin_id: user.id,
-          status: 'in_progress'
+          status: 'in_progress',
+          last_updated: new Date().toISOString()
         })
         .eq('id', selectedTicket);
 
@@ -160,10 +218,17 @@ const SupportChat = () => {
         }]);
 
       if (error) throw error;
+      
+      // Update the last_updated timestamp for the ticket
+      await supabase
+        .from('support_tickets')
+        .update({ last_updated: new Date().toISOString() })
+        .eq('id', selectedTicket);
     },
     onSuccess: () => {
       setMessage('');
-      queryClient.invalidateQueries({ queryKey: ['support-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['support-messages', selectedTicket] });
+      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
     },
   });
 
@@ -172,7 +237,10 @@ const SupportChat = () => {
     mutationFn: async () => {
       const { error } = await supabase
         .from('support_tickets')
-        .update({ status: 'closed' })
+        .update({ 
+          status: 'closed',
+          last_updated: new Date().toISOString()
+        })
         .eq('id', selectedTicket);
 
       if (error) throw error;
@@ -222,6 +290,8 @@ const SupportChat = () => {
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           ticket.status === 'open' 
                             ? 'bg-green-100 text-green-800' 
+                            : ticket.status === 'in_progress'
+                            ? 'bg-blue-100 text-blue-800'
                             : 'bg-gray-100 text-gray-800'
                         }`}>
                           {ticket.status}
@@ -235,7 +305,6 @@ const SupportChat = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedTicket(ticket.id)}
-                          disabled={ticket.status === 'closed'}
                         >
                           View
                         </Button>
