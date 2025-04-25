@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +21,6 @@ const Support = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch tickets (open and closed) for the current user
   const { data: tickets = [], isLoading: ticketLoading } = useQuery({
     queryKey: ['user-support-tickets'],
     queryFn: async () => {
@@ -37,12 +35,10 @@ const Support = () => {
     },
   });
 
-  // Get the most recent active ticket (either open or in_progress)
   const activeTicket = tickets.find(ticket => 
     ticket.status === 'open' || ticket.status === 'in_progress'
   );
 
-  // Fetch messages for the active ticket
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['support-messages', activeTicket?.id],
     queryFn: async () => {
@@ -56,7 +52,6 @@ const Support = () => {
 
       if (messageError) throw messageError;
       
-      // Get sender profiles in a separate query
       const senderIds = messageData.map(msg => msg.sender_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -65,7 +60,6 @@ const Support = () => {
       
       if (profilesError) throw profilesError;
 
-      // Map messages with sender information
       return messageData.map(msg => {
         const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
         return {
@@ -79,7 +73,6 @@ const Support = () => {
     enabled: !!activeTicket?.id,
   });
 
-  // Fetch messages for the selected ticket
   const { data: selectedTicketMessages = [] } = useQuery({
     queryKey: ['support-messages', selectedTicketId],
     queryFn: async () => {
@@ -93,7 +86,6 @@ const Support = () => {
 
       if (messageError) throw messageError;
       
-      // Get sender profiles in a separate query
       const senderIds = messageData.map(msg => msg.sender_id);
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -102,7 +94,6 @@ const Support = () => {
       
       if (profilesError) throw profilesError;
 
-      // Map messages with sender information
       return messageData.map(msg => {
         const senderProfile = profilesData?.find(profile => profile.id === msg.sender_id);
         return {
@@ -116,7 +107,6 @@ const Support = () => {
     enabled: !!selectedTicketId,
   });
 
-  // Create new ticket mutation
   const createTicket = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -141,7 +131,6 @@ const Support = () => {
     },
   });
 
-  // Send message mutation
   const sendMessage = useMutation({
     mutationFn: async (message: string) => {
       if (!activeTicket) {
@@ -158,7 +147,6 @@ const Support = () => {
 
       if (error) throw error;
 
-      // Update the last_updated timestamp for the ticket
       await supabase
         .from('support_tickets')
         .update({ last_updated: new Date().toISOString() })
@@ -175,7 +163,6 @@ const Support = () => {
     },
   });
 
-  // Check for new notifications on messages
   useEffect(() => {
     const channel = supabase
       .channel('support-notifications')
@@ -225,26 +212,25 @@ const Support = () => {
         <CardHeader>
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            <h2 className="text-2xl font-bold">Support Chat</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">Support Chat</h2>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Chat with our support team. We'll get back to you as soon as possible.
           </p>
         </CardHeader>
 
         <CardContent>
-          {/* Ticket History Section */}
           <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Ticket History</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Ticket History</h3>
             <div className="space-y-2">
               {tickets.map((ticket) => (
                 <div 
                   key={ticket.id} 
-                  className="flex items-center justify-between bg-muted/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between bg-muted/30 p-3 rounded-lg cursor-pointer hover:bg-muted/50 gap-2 sm:gap-0"
                   onClick={() => handleViewHistory(ticket.id)}
                 >
-                  <div>
-                    <span className="font-medium">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span className="font-medium text-sm sm:text-base">
                       Ticket from {new Date(ticket.created_at).toLocaleDateString()}
                     </span>
                     <Badge 
@@ -252,12 +238,12 @@ const Support = () => {
                         ticket.status === 'open' ? 'default' : 
                         ticket.status === 'in_progress' ? 'outline' : 'secondary'
                       }
-                      className="ml-2"
+                      className="w-fit"
                     >
                       {ticket.status}
                     </Badge>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                     View History
                   </Button>
                 </div>
@@ -265,27 +251,26 @@ const Support = () => {
             </div>
           </div>
 
-          {/* Active Chat Section */}
           {!activeTicket ? (
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-muted-foreground py-8 text-sm sm:text-base">
               Start a conversation with our support team
             </div>
           ) : (
-            <div className="space-y-4 min-h-[300px] max-h-[500px] overflow-y-auto p-4 bg-muted/30 rounded-lg">
+            <div className="space-y-4 min-h-[300px] max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 bg-muted/30 rounded-lg">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-3 ${
                       msg.sender_id === user?.id
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm font-medium mb-1">{msg.senderName}</p>
-                    <p className="text-sm">{msg.message}</p>
+                    <p className="text-xs sm:text-sm font-medium mb-1">{msg.senderName}</p>
+                    <p className="text-sm sm:text-base break-words">{msg.message}</p>
                   </div>
                   <span className="text-xs text-muted-foreground mt-1">
                     {new Date(msg.timestamp).toLocaleTimeString()}
@@ -296,7 +281,7 @@ const Support = () => {
           )}
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
           {!activeTicket ? (
             <Button 
               className="w-full" 
@@ -311,7 +296,7 @@ const Support = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message here..."
-                className="min-h-[80px]"
+                className="min-h-[80px] text-sm sm:text-base"
               />
               <Button 
                 type="submit" 
@@ -325,9 +310,8 @@ const Support = () => {
         </CardFooter>
       </Card>
 
-      {/* Conversation History Dialog */}
       <Dialog open={!!selectedTicketId} onOpenChange={() => setSelectedTicketId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Conversation History</DialogTitle>
           </DialogHeader>
@@ -338,14 +322,14 @@ const Support = () => {
                 className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
+                  className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-3 ${
                     msg.sender_id === user?.id
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted'
                   }`}
                 >
-                  <p className="text-sm font-medium mb-1">{msg.senderName}</p>
-                  <p className="text-sm">{msg.message}</p>
+                  <p className="text-xs sm:text-sm font-medium mb-1">{msg.senderName}</p>
+                  <p className="text-sm sm:text-base break-words">{msg.message}</p>
                 </div>
                 <span className="text-xs text-muted-foreground mt-1">
                   {new Date(msg.timestamp).toLocaleTimeString()}
