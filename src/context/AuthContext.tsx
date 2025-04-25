@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching profile for user:', userId);
       
+      // First, attempt to get profile from the profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('user_type, email')
@@ -43,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) {
         console.error('Error fetching profile:', profileError);
         
+        // If profile fetch fails, try to get user metadata from auth
         const { data: userData, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
@@ -59,6 +62,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setUserType('free');
           }
+          
+          // Try to create a profile if one doesn't exist yet
+          try {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                email: userData.user.email,
+                user_type: metadataType || 'free',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+              
+            if (insertError && !insertError.message.includes('duplicate')) {
+              console.error('Error creating profile:', insertError);
+            }
+          } catch (err) {
+            console.error('Error in profile creation:', err);
+          }
+          
           return;
         }
         

@@ -26,14 +26,23 @@ const SignupForm = () => {
     try {
       console.log("Attempting signup with:", email);
       
-      // Sign up the user - we set user_type in the metadata 
-      // even though we have the profiles table as a backup
+      // Validate email and password
+      if (!email || !password) {
+        throw new Error("Email and password are required");
+      }
+      
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters");
+      }
+      
+      // Sign up the user with clear metadata format
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            user_type: 'free' // Default to free user
+            user_type: 'free',
+            email: email // Include email in metadata to ensure it's available
           }
         }
       });
@@ -59,7 +68,7 @@ const SignupForm = () => {
       toast({
         variant: "destructive",
         title: "Error signing up",
-        description: error.message,
+        description: error.message || "An unexpected error occurred during signup",
       });
     } finally {
       setLoading(false);
@@ -90,6 +99,7 @@ const SignupForm = () => {
             value={password} 
             onChange={(e) => setPassword(e.target.value)} 
             required 
+            minLength={6}
           />
           <button 
             type="button"
