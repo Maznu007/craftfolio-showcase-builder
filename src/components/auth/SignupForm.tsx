@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +25,6 @@ const SignupForm = () => {
     try {
       console.log("Attempting signup with:", email);
       
-      // Validate email and password
       if (!email || !password) {
         throw new Error("Email and password are required");
       }
@@ -35,16 +33,9 @@ const SignupForm = () => {
         throw new Error("Password must be at least 6 characters");
       }
       
-      // Sign up the user with clear metadata format
       const { error, data } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            user_type: 'free',
-            email: email // Include email in metadata to ensure it's available
-          }
-        }
+        password
       });
       
       if (error) throw error;
