@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from './ui/button';
-import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Speaker, Book, DollarSign, Users, ChevronDown, User, Github, Linkedin, Bell, BellDot, ShieldCheck, HelpCircle, Menu, X } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
@@ -16,9 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from '@/integrations/supabase/client';
 import NotificationItem from './NotificationItem';
 import { Tables } from '@/integrations/supabase/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type Notification = Tables<'notifications'>;
 
@@ -28,6 +31,7 @@ const Navbar = () => {
   const location = useLocation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -135,6 +139,7 @@ const Navbar = () => {
           <span className="font-bold text-xl tracking-tight">CRAFTFOLIO</span>
         </div>
 
+        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           <Popover>
             <PopoverTrigger asChild>
@@ -188,6 +193,82 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Mobile Navigation */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-0 md:hidden" size="icon">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="pt-10">
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center space-x-2">
+                  <Speaker className="h-5 w-5" />
+                  <span className="font-bold text-lg">CRAFTFOLIO</span>
+                </div>
+                <div className="space-y-4">
+                  {/* Resources dropdown for mobile */}
+                  <div className="space-y-3">
+                    <div className="font-medium flex items-center">
+                      <Book className="h-4 w-4 mr-2" />
+                      Resources
+                    </div>
+                    <div className="pl-6 space-y-2">
+                      <button 
+                        className="block w-full text-left py-1"
+                        onClick={() => {
+                          handleResourceAction('templates');
+                        }}
+                      >
+                        Templates
+                      </button>
+                      <button 
+                        className="block w-full text-left py-1"
+                        onClick={() => {
+                          handleResourceAction('tutorials');
+                        }}
+                      >
+                        Tutorials
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    className="flex items-center space-x-2 font-medium w-full"
+                    onClick={() => {
+                      scrollToPricing();
+                    }}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    <span>Pricing</span>
+                  </button>
+                  
+                  <button 
+                    className="flex items-center space-x-2 font-medium w-full"
+                    onClick={() => {
+                      navigate('/community');
+                    }}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Community</span>
+                  </button>
+                  
+                  <button 
+                    className="flex items-center space-x-2 font-medium w-full"
+                    onClick={() => {
+                      handleSupportAction();
+                    }}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Support</span>
+                  </button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+          
+          {/* Notifications */}
           {user && (
             <Popover>
               <PopoverTrigger asChild>
@@ -242,6 +323,7 @@ const Navbar = () => {
             </Popover>
           )}
           
+          {/* Authentication */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -282,10 +364,10 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <>
+            <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                className="text-black"
+                className="text-black hidden sm:flex"
                 onClick={() => handleAuthAction('signup')}
               >
                 Sign Up
@@ -294,9 +376,9 @@ const Navbar = () => {
                 className="bg-gray-700 hover:bg-gray-800 text-white"
                 onClick={() => handleAuthAction('login')}
               >
-                Log In
+                {isMobile ? "Login" : "Log In"}
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
