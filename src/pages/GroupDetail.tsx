@@ -12,6 +12,7 @@ import GroupPortfolioList from '@/components/group/GroupPortfolioList';
 import GroupMemberList from '@/components/group/GroupMemberList';
 import GroupDiscussion from '@/components/group/GroupDiscussion';
 import SharePortfolioModal from '@/components/group/SharePortfolioModal';
+import { safeParsePortfolioContent } from '@/types/portfolio';
 
 const GroupDetail = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -74,8 +75,14 @@ const GroupDetail = () => {
           `)
           .eq('group_id', groupId);
         
-        if (!membersError) {
-          setMembers(allMembers || []);
+        if (!membersError && allMembers) {
+          // Transform the data to match our TypeScript interface
+          const typedMembers: GroupMember[] = allMembers.map(member => ({
+            ...member,
+            profiles: member.profiles || null
+          }));
+          
+          setMembers(typedMembers);
         }
         
         // Get shared portfolios if user is a member
@@ -93,8 +100,18 @@ const GroupDetail = () => {
             `)
             .eq('group_id', groupId);
           
-          if (!portfolioError) {
-            setPortfolios(portfolioData || []);
+          if (!portfolioError && portfolioData) {
+            // Transform the data to match our TypeScript interface
+            const typedPortfolios: GroupPortfolio[] = portfolioData.map(item => ({
+              ...item,
+              portfolios: {
+                ...item.portfolios,
+                content: safeParsePortfolioContent(item.portfolios.content)
+              },
+              profiles: item.profiles || null
+            }));
+            
+            setPortfolios(typedPortfolios);
           }
         }
       }

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Portfolio } from '@/types/portfolio';
+import { Portfolio, safeParsePortfolioContent } from '@/types/portfolio';
 import {
   Dialog,
   DialogContent,
@@ -67,12 +67,20 @@ const SharePortfolioModal: React.FC<SharePortfolioModalProps> = ({
       
       // Filter out already shared portfolios
       const sharedIds = alreadyShared?.map(item => item.portfolio_id) || [];
-      const availablePortfolios = data?.filter(portfolio => !sharedIds.includes(portfolio.id)) || [];
       
-      setPortfolios(availablePortfolios);
-      
-      if (availablePortfolios.length > 0) {
-        setSelectedPortfolioId(availablePortfolios[0].id);
+      if (data) {
+        // Convert the raw data to correctly typed Portfolio objects
+        const typedPortfolios = data.map(p => ({
+          ...p,
+          content: safeParsePortfolioContent(p.content)
+        }));
+        
+        const availablePortfolios = typedPortfolios.filter(portfolio => !sharedIds.includes(portfolio.id));
+        setPortfolios(availablePortfolios);
+        
+        if (availablePortfolios.length > 0) {
+          setSelectedPortfolioId(availablePortfolios[0].id);
+        }
       }
     } catch (error: any) {
       toast({

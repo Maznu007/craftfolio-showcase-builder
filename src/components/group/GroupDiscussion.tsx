@@ -73,7 +73,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
       
       if (error) throw error;
       
-      setComments(data || []);
+      if (data) {
+        // Transform data to match our interface
+        const typedComments: GroupComment[] = data.map(item => ({
+          ...item,
+          profiles: item.profiles || null
+        }));
+        setComments(typedComments);
+      }
     } catch (error: any) {
       toast({
         title: 'Error loading comments',
@@ -98,7 +105,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
         .single();
         
       if (!profileError && profileData) {
-        const enrichedComment = {
+        const enrichedComment: GroupComment = {
           ...comment,
           profiles: profileData
         };

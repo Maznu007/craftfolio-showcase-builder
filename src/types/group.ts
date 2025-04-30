@@ -17,7 +17,7 @@ export interface GroupMember {
   group_id: string;
   user_id: string;
   joined_at: string;
-  profiles?: Profile;
+  profiles?: Profile | null;
 }
 
 export interface GroupPortfolio {
@@ -27,7 +27,7 @@ export interface GroupPortfolio {
   shared_by: string;
   shared_at: string;
   portfolios: Portfolio;
-  profiles?: Profile;
+  profiles?: Profile | null;
 }
 
 export interface GroupComment {
@@ -38,5 +38,5 @@ export interface GroupComment {
   comment: string;
   created_at: string;
   updated_at: string;
-  profiles?: Profile;
+  profiles?: Profile | null;
 }
