@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -216,8 +215,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
           <div className="space-y-4">
             {comments.map((comment) => {
               const profile = comment.profiles;
-              // Fixed: Added null-safe access
-              const displayName = profile?.display_name || profile?.email?.split('@')[0] || 'Anonymous User';
+              // Fixed: Added proper null-safe access with defaults
+              const displayName = profile?.display_name || 
+                (profile?.email ? profile.email.split('@')[0] : 'Anonymous User');
               const initials = displayName.substring(0, 2).toUpperCase();
               const isCurrentUser = user?.id === comment.user_id;
               

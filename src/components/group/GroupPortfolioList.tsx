@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,7 +79,8 @@ const GroupPortfolioList: React.FC<GroupPortfolioListProps> = ({
       {portfolios.map((item) => {
         const portfolio = item.portfolios;
         const sharedBy = item.profiles;
-        const displayName = sharedBy?.display_name || sharedBy?.email?.split('@')[0] || 'Anonymous User';
+        const displayName = sharedBy?.display_name || 
+          (sharedBy?.email ? sharedBy.email.split('@')[0] : 'Anonymous User');
         const canRemove = user?.id === item.shared_by || isCurrentUserOwner;
         
         return (

@@ -22,7 +22,8 @@ const GroupMemberList: React.FC<GroupMemberListProps> = ({ members }) => {
       <ul className="divide-y divide-gray-100">
         {members.map((member) => {
           const profile = member.profiles;
-          const displayName = profile?.display_name || profile?.email?.split('@')[0] || 'Anonymous User';
+          const displayName = profile?.display_name || 
+            (profile?.email ? profile.email.split('@')[0] : 'Anonymous User');
           const initials = displayName.substring(0, 2).toUpperCase();
           
           return (
