@@ -130,6 +130,14 @@ const Navbar = () => {
   const handleSupportAction = () => {
     navigate('/support');
   };
+  
+  const handleCommunityAction = (action: 'portfolios' | 'groups') => {
+    if (action === 'portfolios') {
+      navigate('/community');
+    } else if (action === 'groups') {
+      navigate('/groups');
+    }
+  };
 
   return (
     <div className="w-full bg-craftfolio-gray py-4">
@@ -175,13 +183,31 @@ const Navbar = () => {
             <span>Pricing</span>
           </button>
 
-          <button 
-            className="flex items-center space-x-1 nav-link cursor-pointer"
-            onClick={() => navigate('/community')}
-          >
-            <Users className="h-4 w-4" />
-            <span>Community</span>
-          </button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center space-x-1 nav-link">
+                <Users className="h-4 w-4" />
+                <span>Community</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56">
+              <div className="grid gap-2">
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => handleCommunityAction('portfolios')}
+                >
+                  Portfolios
+                </button>
+                <button 
+                  className="font-medium hover:bg-gray-100 p-2 rounded text-left"
+                  onClick={() => handleCommunityAction('groups')}
+                >
+                  Groups
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <button 
             className="flex items-center space-x-1 nav-link cursor-pointer"
@@ -244,15 +270,31 @@ const Navbar = () => {
                     <span>Pricing</span>
                   </button>
                   
-                  <button 
-                    className="flex items-center space-x-2 font-medium w-full"
-                    onClick={() => {
-                      navigate('/community');
-                    }}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Community</span>
-                  </button>
+                  {/* Community dropdown for mobile */}
+                  <div className="space-y-3">
+                    <div className="font-medium flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      Community
+                    </div>
+                    <div className="pl-6 space-y-2">
+                      <button 
+                        className="block w-full text-left py-1"
+                        onClick={() => {
+                          navigate('/community');
+                        }}
+                      >
+                        Portfolios
+                      </button>
+                      <button 
+                        className="block w-full text-left py-1"
+                        onClick={() => {
+                          navigate('/groups');
+                        }}
+                      >
+                        Groups
+                      </button>
+                    </div>
+                  </div>
                   
                   <button 
                     className="flex items-center space-x-2 font-medium w-full"
