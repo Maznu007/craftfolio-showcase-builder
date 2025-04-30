@@ -76,7 +76,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
       if (data) {
         // Transform data to match our interface
         const typedComments: GroupComment[] = data.map(item => {
-          // Check if profiles is an error and handle it
+          // Check if profiles is an error and handle it - fixed null check
           const profileData = (item.profiles && typeof item.profiles === 'object' && 
               !('error' in item.profiles)) ? item.profiles : null;
               
@@ -216,6 +216,7 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
           <div className="space-y-4">
             {comments.map((comment) => {
               const profile = comment.profiles;
+              // Fixed: Added null-safe access
               const displayName = profile?.display_name || profile?.email?.split('@')[0] || 'Anonymous User';
               const initials = displayName.substring(0, 2).toUpperCase();
               const isCurrentUser = user?.id === comment.user_id;

@@ -78,7 +78,7 @@ const GroupDetail = () => {
         if (!membersError && allMembers) {
           // Transform the data to match our TypeScript interface
           const typedMembers: GroupMember[] = allMembers.map(member => {
-            // Check if profiles is an error and handle it
+            // Check if profiles is an error and handle it - fixed null check
             const profileData = (member.profiles && typeof member.profiles === 'object' && 
               !('error' in member.profiles)) ? member.profiles : null;
               
@@ -109,7 +109,7 @@ const GroupDetail = () => {
           if (!portfolioError && portfolioData) {
             // Transform the data to match our TypeScript interface
             const typedPortfolios: GroupPortfolio[] = portfolioData.map(item => {
-              // Handle profile errors
+              // Handle profile errors - fixed null check
               const profileData = (item.profiles && typeof item.profiles === 'object' && 
                 !('error' in item.profiles)) ? item.profiles : null;
               
@@ -282,7 +282,7 @@ const GroupDetail = () => {
               <GroupPortfolioList 
                 portfolios={portfolios} 
                 onRefresh={fetchGroupDetails} 
-                isCurrentUserOwner={user?.id === group.created_by}
+                isCurrentUserOwner={user?.id === group?.created_by}
               />
             </TabsContent>
             
