@@ -12,6 +12,7 @@ export interface Group {
   created_by: string;
 }
 
+// Modified to handle error response profiles more explicitly
 export interface GroupMember {
   id: string;
   group_id: string;
@@ -20,6 +21,7 @@ export interface GroupMember {
   profiles?: Profile | null;
 }
 
+// Modified to handle error response profiles more explicitly
 export interface GroupPortfolio {
   id: string;
   group_id: string;
@@ -30,10 +32,11 @@ export interface GroupPortfolio {
   profiles?: Profile | null;
 }
 
+// Modified to handle error response profiles more explicitly
 export interface GroupComment {
   id: string;
   group_id: string;
-  portfolio_id?: string | null;
+  portfolio_id: string | null;
   user_id: string;
   comment: string;
   created_at: string;

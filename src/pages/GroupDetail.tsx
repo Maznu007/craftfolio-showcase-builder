@@ -79,15 +79,12 @@ const GroupDetail = () => {
           // Transform the data to match our TypeScript interface
           const typedMembers: GroupMember[] = allMembers.map(member => {
             // Check if profiles is an error and handle it
-            if (member.profiles && typeof member.profiles === 'object' && 'error' in member.profiles) {
-              return {
-                ...member,
-                profiles: null
-              };
-            }
+            const profileData = (member.profiles && typeof member.profiles === 'object' && 
+              !('error' in member.profiles)) ? member.profiles : null;
+              
             return {
               ...member,
-              profiles: member.profiles || null
+              profiles: profileData
             };
           });
           
@@ -113,10 +110,8 @@ const GroupDetail = () => {
             // Transform the data to match our TypeScript interface
             const typedPortfolios: GroupPortfolio[] = portfolioData.map(item => {
               // Handle profile errors
-              let profileData = item.profiles;
-              if (item.profiles && typeof item.profiles === 'object' && 'error' in item.profiles) {
-                profileData = null;
-              }
+              const profileData = (item.profiles && typeof item.profiles === 'object' && 
+                !('error' in item.profiles)) ? item.profiles : null;
               
               return {
                 ...item,

@@ -77,17 +77,15 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
         // Transform data to match our interface
         const typedComments: GroupComment[] = data.map(item => {
           // Check if profiles is an error and handle it
-          if (item.profiles && typeof item.profiles === 'object' && 'error' in item.profiles) {
-            return {
-              ...item,
-              profiles: null
-            };
-          }
+          const profileData = (item.profiles && typeof item.profiles === 'object' && 
+              !('error' in item.profiles)) ? item.profiles : null;
+              
           return {
             ...item,
-            profiles: item.profiles || null
+            profiles: profileData
           };
         });
+        
         setComments(typedComments);
       }
     } catch (error: any) {
