@@ -77,10 +77,19 @@ const GroupDetail = () => {
         
         if (!membersError && allMembers) {
           // Transform the data to match our TypeScript interface
-          const typedMembers: GroupMember[] = allMembers.map(member => ({
-            ...member,
-            profiles: member.profiles || null
-          }));
+          const typedMembers: GroupMember[] = allMembers.map(member => {
+            // Check if profiles is an error and handle it
+            if (member.profiles && typeof member.profiles === 'object' && 'error' in member.profiles) {
+              return {
+                ...member,
+                profiles: null
+              };
+            }
+            return {
+              ...member,
+              profiles: member.profiles || null
+            };
+          });
           
           setMembers(typedMembers);
         }
@@ -102,14 +111,22 @@ const GroupDetail = () => {
           
           if (!portfolioError && portfolioData) {
             // Transform the data to match our TypeScript interface
-            const typedPortfolios: GroupPortfolio[] = portfolioData.map(item => ({
-              ...item,
-              portfolios: {
-                ...item.portfolios,
-                content: safeParsePortfolioContent(item.portfolios.content)
-              },
-              profiles: item.profiles || null
-            }));
+            const typedPortfolios: GroupPortfolio[] = portfolioData.map(item => {
+              // Handle profile errors
+              let profileData = item.profiles;
+              if (item.profiles && typeof item.profiles === 'object' && 'error' in item.profiles) {
+                profileData = null;
+              }
+              
+              return {
+                ...item,
+                portfolios: {
+                  ...item.portfolios,
+                  content: safeParsePortfolioContent(item.portfolios.content)
+                },
+                profiles: profileData
+              };
+            });
             
             setPortfolios(typedPortfolios);
           }

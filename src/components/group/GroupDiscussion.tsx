@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -75,10 +74,19 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
       
       if (data) {
         // Transform data to match our interface
-        const typedComments: GroupComment[] = data.map(item => ({
-          ...item,
-          profiles: item.profiles || null
-        }));
+        const typedComments: GroupComment[] = data.map(item => {
+          // Check if profiles is an error and handle it
+          if (item.profiles && typeof item.profiles === 'object' && 'error' in item.profiles) {
+            return {
+              ...item,
+              profiles: null
+            };
+          }
+          return {
+            ...item,
+            profiles: item.profiles || null
+          };
+        });
         setComments(typedComments);
       }
     } catch (error: any) {
@@ -111,9 +119,14 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
         };
         
         setComments(prev => [...prev, enrichedComment]);
+      } else {
+        // Add the comment even without profile data
+        setComments(prev => [...prev, { ...comment, profiles: null }]);
       }
     } catch (error) {
       console.error('Error fetching profile for new comment:', error);
+      // Add the comment even without profile data
+      setComments(prev => [...prev, { ...comment, profiles: null }]);
     }
   };
   
