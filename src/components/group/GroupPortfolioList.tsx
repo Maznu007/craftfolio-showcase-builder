@@ -30,7 +30,15 @@ const GroupPortfolioList: React.FC<GroupPortfolioListProps> = ({
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">
         <p className="mb-4">No portfolios have been shared in this group yet.</p>
-        <Button onClick={() => navigate('/portfolio/create')}>Create a Portfolio to Share</Button>
+        <div className="flex justify-center gap-4">
+          <Button 
+            onClick={() => navigate('/portfolio')}
+            variant="outline"
+          >
+            View My Portfolios
+          </Button>
+          <Button onClick={() => navigate('/portfolio/create')}>Create New Portfolio</Button>
+        </div>
       </div>
     );
   }

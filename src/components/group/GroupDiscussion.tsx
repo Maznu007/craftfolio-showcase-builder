@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -157,8 +158,9 @@ const GroupDiscussion: React.FC<GroupDiscussionProps> = ({ groupId }) => {
         profiles: {
           id: user.id,
           display_name: user.user_metadata?.display_name || null,
-          email: user.email
-        }
+          email: user.email || ''
+        },
+        portfolio_id: null
       };
       
       setComments(prev => [...prev, newCommentObj]);
